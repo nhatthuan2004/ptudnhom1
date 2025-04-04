@@ -1,0 +1,299 @@
+package UI;
+
+import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.*;
+import model.KhachHang;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class QLKH {
+    private final ObservableList<KhachHang> danhSachKhachHang;
+    private TableView<KhachHang> table;
+    private StackPane contentPane;
+    private StackPane mainPane;
+
+    public QLKH() {
+        this.danhSachKhachHang = DataManager.getInstance().getKhachHangList();
+        this.contentPane = new StackPane();
+        this.mainPane = createMainPane();
+    }
+
+    private StackPane createMainPane() {
+        StackPane mainPane = new StackPane();
+        mainPane.setStyle("-fx-background-color: #f0f0f0;");
+        mainPane.setPrefSize(1120, 800);
+
+        // UserInfoBox
+        HBox userInfoBox;
+        try {
+            userInfoBox = UserInfoBox.createUserInfoBox();
+        } catch (Exception e) {
+            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
+        }
+        userInfoBox.setPrefSize(200, 50);
+        userInfoBox.setMaxSize(200, 50);
+        StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
+        StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
+
+        // Nút thêm khách hàng
+        Button addButton = new Button("+ Thêm khách hàng");
+        addButton.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; " +
+                "-fx-padding: 6 12; -fx-background-radius: 6;");
+        addButton.setOnAction(e -> showKhachHangForm(null));
+
+        HBox addBox = new HBox(addButton);
+        addBox.setAlignment(Pos.CENTER_LEFT);
+        addBox.setPadding(new Insets(0, 20, 10, 20));
+
+        VBox topHeader = new VBox(addBox);
+        topHeader.setSpacing(10);
+        StackPane.setAlignment(topHeader, Pos.TOP_LEFT);
+
+        // Bảng khách hàng
+        table = new TableView<>(danhSachKhachHang);
+        table.setPrefWidth(1120);
+        table.setPrefHeight(740);
+
+        TableColumn<KhachHang, String> maKhachHangCol = new TableColumn<>("Mã KH");
+        maKhachHangCol.setCellValueFactory(new PropertyValueFactory<>("maKhachHang"));
+        maKhachHangCol.setPrefWidth(100);
+
+        TableColumn<KhachHang, String> tenKhachHangCol = new TableColumn<>("Họ và Tên");
+        tenKhachHangCol.setCellValueFactory(new PropertyValueFactory<>("tenKhachHang"));
+        tenKhachHangCol.setPrefWidth(150);
+
+        TableColumn<KhachHang, String> cccdCol = new TableColumn<>("CCCD");
+        cccdCol.setCellValueFactory(new PropertyValueFactory<>("cccd"));
+        cccdCol.setPrefWidth(150);
+
+        TableColumn<KhachHang, String> soDienThoaiCol = new TableColumn<>("Số Điện Thoại");
+        soDienThoaiCol.setCellValueFactory(new PropertyValueFactory<>("soDienThoai"));
+        soDienThoaiCol.setPrefWidth(120);
+
+        TableColumn<KhachHang, String> diaChiCol = new TableColumn<>("Địa Chỉ");
+        diaChiCol.setCellValueFactory(new PropertyValueFactory<>("diaChi"));
+        diaChiCol.setPrefWidth(200);
+
+        TableColumn<KhachHang, String> quocTichCol = new TableColumn<>("Quốc Tịch");
+        quocTichCol.setCellValueFactory(new PropertyValueFactory<>("quocTich"));
+        quocTichCol.setPrefWidth(100);
+
+        TableColumn<KhachHang, String> gioiTinhCol = new TableColumn<>("Giới Tính");
+        gioiTinhCol.setCellValueFactory(new PropertyValueFactory<>("gioiTinh"));
+        gioiTinhCol.setPrefWidth(100);
+
+        TableColumn<KhachHang, LocalDate> ngaySinhCol = new TableColumn<>("Ngày Sinh");
+        ngaySinhCol.setCellValueFactory(new PropertyValueFactory<>("ngaySinh"));
+        ngaySinhCol.setPrefWidth(120);
+
+        TableColumn<KhachHang, Void> editCol = new TableColumn<>("Sửa");
+        editCol.setCellFactory(col -> new TableCell<>() {
+            private final Button btnEdit = new Button("Sửa");
+            {
+                btnEdit.setStyle("-fx-background-color: #FFA500; -fx-text-fill: white;");
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(btnEdit);
+                    btnEdit.setOnAction(e -> showKhachHangForm(getTableRow().getItem()));
+                }
+            }
+        });
+        editCol.setPrefWidth(100);
+
+        TableColumn<KhachHang, Void> deleteCol = new TableColumn<>("Xóa");
+        deleteCol.setCellFactory(col -> new TableCell<>() {
+            private final Button btnDelete = new Button("Xóa");
+            {
+                btnDelete.setStyle("-fx-background-color: #FF0000; -fx-text-fill: white;");
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(btnDelete);
+                    btnDelete.setOnAction(e -> {
+                        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                        confirm.setTitle("Xác nhận xóa");
+                        confirm.setHeaderText("Bạn có chắc muốn xóa khách hàng này?");
+                        confirm.setContentText("Khách hàng: " + getTableRow().getItem().getTenKhachHang());
+                        confirm.showAndWait().ifPresent(response -> {
+                            if (response == ButtonType.OK) {
+                                danhSachKhachHang.remove(getTableRow().getItem());
+                            }
+                        });
+                    });
+                }
+            }
+        });
+        deleteCol.setPrefWidth(100);
+
+        table.getColumns().setAll(maKhachHangCol, tenKhachHangCol, cccdCol, soDienThoaiCol, diaChiCol, quocTichCol,
+                                  gioiTinhCol, ngaySinhCol, editCol, deleteCol);
+
+        BorderPane layout = new BorderPane();
+        layout.setTop(new HBox(topHeader, userInfoBox));
+        HBox.setHgrow(topHeader, Priority.ALWAYS);
+        HBox.setHgrow(userInfoBox, Priority.NEVER);
+        layout.setCenter(table);
+        layout.setPadding(new Insets(10));
+
+        mainPane.getChildren().add(layout);
+        return mainPane;
+    }
+
+    public StackPane getUI() {
+        contentPane.getChildren().setAll(mainPane);
+        return contentPane;
+    }
+
+    private VBox createCenteredForm(String titleText) {
+        VBox form = new VBox(10);
+        form.setAlignment(Pos.CENTER);
+        form.setPadding(new Insets(20));
+        form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
+                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+        form.setMaxWidth(500);
+        form.setMaxHeight(450);
+
+        Label title = new Label(titleText);
+        title.setStyle("-fx-font-weight: bold; -fx-font-size: 16;");
+        title.setPadding(new Insets(0, 0, 10, 0));
+
+        form.getChildren().add(title);
+        return form;
+    }
+
+    private void showKhachHangForm(KhachHang khachHang) {
+        boolean isEditMode = khachHang != null;
+        VBox form = createCenteredForm(
+                isEditMode ? "Sửa thông tin khách hàng " + khachHang.getMaKhachHang() : "Thêm khách hàng mới");
+
+        TextField tfMaKhachHang = new TextField(isEditMode ? khachHang.getMaKhachHang() : "");
+        tfMaKhachHang.setPromptText("Mã KH...");
+        tfMaKhachHang.setDisable(isEditMode);
+
+        TextField tfTenKhachHang = new TextField(isEditMode ? khachHang.getTenKhachHang() : "");
+        tfTenKhachHang.setPromptText("Họ và tên...");
+
+        TextField tfCccd = new TextField(isEditMode ? khachHang.getCccd() : "");
+        tfCccd.setPromptText("CCCD (12 số)...");
+
+        TextField tfSoDienThoai = new TextField(isEditMode ? khachHang.getSoDienThoai() : "");
+        tfSoDienThoai.setPromptText("Số điện thoại (10 số)...");
+
+        TextField tfDiaChi = new TextField(isEditMode ? khachHang.getDiaChi() : "");
+        tfDiaChi.setPromptText("Địa chỉ...");
+
+        TextField tfQuocTich = new TextField(isEditMode ? khachHang.getQuocTich() : "");
+        tfQuocTich.setPromptText("Quốc tịch...");
+
+        DatePicker dpNgaySinh = new DatePicker(isEditMode ? khachHang.getNgaySinh() : null);
+        dpNgaySinh.setPromptText("Ngày sinh (dd/MM/yyyy)");
+
+        ComboBox<String> cbGioiTinh = new ComboBox<>();
+        cbGioiTinh.getItems().addAll("Nam", "Nữ", "Khác");
+        cbGioiTinh.setPromptText("Chọn giới tính...");
+        if (isEditMode) cbGioiTinh.setValue(khachHang.getGioiTinh());
+
+        GridPane grid = new GridPane();
+        grid.setVgap(10);
+        grid.setHgap(10);
+        grid.setAlignment(Pos.CENTER);
+
+        grid.add(new Label("Mã KH:"), 0, 0); grid.add(tfMaKhachHang, 1, 0);
+        grid.add(new Label("Họ và Tên:"), 0, 1); grid.add(tfTenKhachHang, 1, 1);
+        grid.add(new Label("CCCD:"), 0, 2); grid.add(tfCccd, 1, 2);
+        grid.add(new Label("Số Điện Thoại:"), 0, 3); grid.add(tfSoDienThoai, 1, 3);
+        grid.add(new Label("Địa Chỉ:"), 0, 4); grid.add(tfDiaChi, 1, 4);
+        grid.add(new Label("Quốc Tịch:"), 0, 5); grid.add(tfQuocTich, 1, 5);
+        grid.add(new Label("Ngày Sinh:"), 0, 6); grid.add(dpNgaySinh, 1, 6);
+        grid.add(new Label("Giới Tính:"), 0, 7); grid.add(cbGioiTinh, 1, 7);
+
+        Button btnLuu = new Button("Lưu");
+        btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
+        btnLuu.setOnAction(e -> {
+            String maKhachHang = tfMaKhachHang.getText();
+            String tenKhachHang = tfTenKhachHang.getText();
+            String cccd = tfCccd.getText();
+            String soDienThoai = tfSoDienThoai.getText();
+            String diaChi = tfDiaChi.getText();
+            String quocTich = tfQuocTich.getText();
+            LocalDate ngaySinh = dpNgaySinh.getValue();
+            String gioiTinh = cbGioiTinh.getValue();
+
+            if (maKhachHang.isEmpty() || tenKhachHang.isEmpty() || cccd.isEmpty() || soDienThoai.isEmpty() || 
+                diaChi.isEmpty() || quocTich.isEmpty() || ngaySinh == null || gioiTinh == null) {
+                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
+                return;
+            }
+
+            if (!cccd.matches("\\d{12}")) {
+                showAlert("Lỗi", "CCCD phải là 12 chữ số!");
+                return;
+            }
+
+            if (!soDienThoai.matches("0\\d{9}")) {
+                showAlert("Lỗi", "Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số!");
+                return;
+            }
+
+            if (ngaySinh.isAfter(LocalDate.now())) {
+                showAlert("Lỗi", "Ngày sinh phải trước ngày hiện tại!");
+                return;
+            }
+
+            KhachHang newKhachHang = isEditMode ? khachHang : new KhachHang(gioiTinh, gioiTinh, gioiTinh, gioiTinh, gioiTinh, gioiTinh, ngaySinh, gioiTinh, gioiTinh);
+            newKhachHang.setMaKhachHang(maKhachHang);
+            newKhachHang.setTenKhachHang(tenKhachHang);
+            newKhachHang.setCccd(cccd);
+            newKhachHang.setSoDienThoai(soDienThoai);
+            newKhachHang.setDiaChi(diaChi);
+            newKhachHang.setQuocTich(quocTich);
+            newKhachHang.setNgaySinh(ngaySinh);
+            newKhachHang.setGioiTinh(gioiTinh);
+
+            if (!isEditMode) {
+                if (danhSachKhachHang.stream().anyMatch(kh -> kh.getMaKhachHang().equals(maKhachHang))) {
+                    showAlert("Lỗi", "Mã khách hàng " + maKhachHang + " đã tồn tại!");
+                    return;
+                }
+                danhSachKhachHang.add(newKhachHang);
+            } else {
+                table.refresh();
+            }
+            contentPane.getChildren().setAll(mainPane);
+        });
+
+        Button btnHuy = new Button("Hủy");
+        btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
+        btnHuy.setOnAction(e -> contentPane.getChildren().setAll(mainPane));
+
+        HBox footer = new HBox(10, btnLuu, btnHuy);
+        footer.setAlignment(Pos.CENTER);
+
+        form.getChildren().addAll(grid, footer);
+        contentPane.getChildren().setAll(form);
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+}
