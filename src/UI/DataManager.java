@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import dao.KhachHang_Dao;
+
 
 public class DataManager {
     private static DataManager instance;
@@ -23,6 +25,8 @@ public class DataManager {
     private final List<Runnable> dichVuListChangeListeners = new ArrayList<>();
     private final List<Runnable> khuyenMaiListChangeListeners = new ArrayList<>();
     private final List<Runnable> nhanVienListChangeListeners = new ArrayList<>();
+    private final KhachHang_Dao khachHangDao = new KhachHang_Dao();
+
 
     private DataManager() {
         // Listener cho từng danh sách
@@ -54,14 +58,11 @@ public class DataManager {
 
         // KhachHang
         if (khachHangList.isEmpty()) {
-            khachHangList.addAll(
-                new KhachHang("KH001", "Nguyễn Văn A", "0901234567", "nva@example.com", 
-                              "123 Đường ABC", "123456789012", LocalDate.of(1990, 5, 15), "Việt Nam", "Nam"),
-                new KhachHang("KH002", "Trần Thị B", "0912345678", "ttb@example.com", 
-                              "456 Đường XYZ", "987654321098", LocalDate.of(1995, 8, 20), "Việt Nam", "Nữ")
-            );
+            List<KhachHang> dsKhachHang = khachHangDao.getAllKhachHang();
+            if (dsKhachHang != null) {
+                khachHangList.addAll(dsKhachHang);
+            }
         }
-
         // NhanVien
      // NhanVien
         if (nhanVienList.isEmpty()) {
