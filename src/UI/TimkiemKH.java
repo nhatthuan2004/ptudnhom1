@@ -10,19 +10,30 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import model.KhachHang;
 import java.time.LocalDate;
+import dao.KhachHang_Dao;
 
 public class TimkiemKH {
     private final ObservableList<KhachHang> danhSachKhachHang;
-    private final DataManager dataManager;
+    private final KhachHang_Dao dao;
 
     public TimkiemKH() {
-        dataManager = DataManager.getInstance();
-        this.danhSachKhachHang = dataManager.getKhachHangList();
+        this.dao = new KhachHang_Dao();
+        this.danhSachKhachHang = FXCollections.observableArrayList();
+        loadDataFromDatabase();
+    }
+
+    private void loadDataFromDatabase() {
+        try {
+            danhSachKhachHang.clear();
+            danhSachKhachHang.addAll(dao.getAllKhachHang());
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải dữ liệu khách hàng: " + e.getMessage());
+        }
     }
 
     public StackPane getUI() {
         StackPane root = new StackPane();
-        root.setStyle("-fx-background-color: #f0f0f0;"); // Đồng bộ màu nền với QLKH
+        root.setStyle("-fx-background-color: #f0f0f0;");
 
         // UserInfoBox
         HBox userInfoBox;
@@ -42,7 +53,8 @@ public class TimkiemKH {
         title.setFont(new Font(20));
 
         TextField txtTimKiem = new TextField();
-        txtTimKiem.setPromptText("Nhập tên khách hàng...");
+        txtTimKiem.setPromptText("Nhập mã hoặc tên khách hàng...");
+        txtTimKiem.setPrefWidth(200);
 
         Button btnTimKiem = new Button("Tìm kiếm");
         btnTimKiem.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
@@ -60,21 +72,25 @@ public class TimkiemKH {
         maKhachHangCol.setCellValueFactory(new PropertyValueFactory<>("maKhachHang"));
         maKhachHangCol.setPrefWidth(100);
 
-        TableColumn<KhachHang, String> tenKhachHangCol = new TableColumn<>("Họ và Tên");
+        TableColumn<KhachHang, String> tenKhachHangCol = new TableColumn<>("Tên Khách Hàng");
         tenKhachHangCol.setCellValueFactory(new PropertyValueFactory<>("tenKhachHang"));
         tenKhachHangCol.setPrefWidth(150);
 
         TableColumn<KhachHang, String> cccdCol = new TableColumn<>("CCCD");
         cccdCol.setCellValueFactory(new PropertyValueFactory<>("cccd"));
-        cccdCol.setPrefWidth(150);
+        cccdCol.setPrefWidth(120);
 
         TableColumn<KhachHang, String> soDienThoaiCol = new TableColumn<>("Số Điện Thoại");
         soDienThoaiCol.setCellValueFactory(new PropertyValueFactory<>("soDienThoai"));
         soDienThoaiCol.setPrefWidth(120);
 
+        TableColumn<KhachHang, String> emailCol = new TableColumn<>("Email");
+        emailCol.setCellValueFactory(new PropertyValueFactory<>("email"));
+        emailCol.setPrefWidth(150);
+
         TableColumn<KhachHang, String> diaChiCol = new TableColumn<>("Địa Chỉ");
         diaChiCol.setCellValueFactory(new PropertyValueFactory<>("diaChi"));
-        diaChiCol.setPrefWidth(200);
+        diaChiCol.setPrefWidth(150);
 
         TableColumn<KhachHang, String> quocTichCol = new TableColumn<>("Quốc Tịch");
         quocTichCol.setCellValueFactory(new PropertyValueFactory<>("quocTich"));
@@ -82,13 +98,13 @@ public class TimkiemKH {
 
         TableColumn<KhachHang, String> gioiTinhCol = new TableColumn<>("Giới Tính");
         gioiTinhCol.setCellValueFactory(new PropertyValueFactory<>("gioiTinh"));
-        gioiTinhCol.setPrefWidth(100);
+        gioiTinhCol.setPrefWidth(80);
 
         TableColumn<KhachHang, LocalDate> ngaySinhCol = new TableColumn<>("Ngày Sinh");
         ngaySinhCol.setCellValueFactory(new PropertyValueFactory<>("ngaySinh"));
-        ngaySinhCol.setPrefWidth(120);
+        ngaySinhCol.setPrefWidth(100);
 
-        table.getColumns().setAll(maKhachHangCol, tenKhachHangCol, cccdCol, soDienThoaiCol, diaChiCol, quocTichCol, gioiTinhCol, ngaySinhCol);
+        table.getColumns().setAll(maKhachHangCol, tenKhachHangCol, cccdCol, soDienThoaiCol, emailCol, diaChiCol, quocTichCol, gioiTinhCol, ngaySinhCol);
 
         // Hiển thị toàn bộ danh sách ban đầu
         table.setItems(danhSachKhachHang);
@@ -107,17 +123,16 @@ public class TimkiemKH {
 
         // Hành động tìm kiếm
         btnTimKiem.setOnAction(e -> {
-            String keyword = txtTimKiem.getText().trim().toLowerCase();
-            if (!keyword.isEmpty()) {
-                ObservableList<KhachHang> ketQua = FXCollections.observableArrayList();
-                for (KhachHang kh : danhSachKhachHang) {
-                    if (kh.getTenKhachHang().toLowerCase().contains(keyword)) {
-                        ketQua.add(kh);
-                    }
+            String keyword = txtTimKiem.getText().trim();
+            try {
+                if (keyword.isEmpty()) {
+                    loadDataFromDatabase(); // Hiển thị lại toàn bộ danh sách nếu không nhập từ khóa
+                } else {
+                    danhSachKhachHang.clear();
+                    danhSachKhachHang.addAll(dao.timKiemKhachHang(keyword));
                 }
-                table.setItems(ketQua);
-            } else {
-                table.setItems(danhSachKhachHang); // Hiển thị lại toàn bộ danh sách nếu không nhập từ khóa
+            } catch (Exception ex) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tìm kiếm: " + ex.getMessage());
             }
         });
 
@@ -125,5 +140,13 @@ public class TimkiemKH {
 
         root.getChildren().add(layout);
         return root;
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }
