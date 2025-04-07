@@ -28,15 +28,6 @@ public class LoginUI {
     }
 
     public static void showLogin(Stage primaryStage) {
-        // Xóa dữ liệu cũ và thêm nhân viên mặc định
-        dataManager.getNhanVienList().clear();
-        System.out.println("Đã xóa danh sách nhân viên cũ");
-        dataManager.getNhanVienList().add(new NhanVien(
-            "NV001", "Admin", "0123456789", true, "Hà Nội", "Quản lý", 10000000, "admin", "12345", "Đang làm"
-        ));
-        System.out.println("Đã thêm nhân viên mặc định: admin/12345");
-        System.out.println("Danh sách nhân viên hiện tại: " + dataManager.getNhanVienList());
-
         Image backgroundImage = loadImage("/img/anhhome4.png");
         BackgroundImage bgImage = new BackgroundImage(backgroundImage,
                 BackgroundRepeat.NO_REPEAT, BackgroundRepeat.NO_REPEAT,
@@ -148,6 +139,7 @@ public class LoginUI {
         NhanVien user = authenticate(username, password);
         if (user != null) {
             UserInfoBox.setCurrentUser(user); // Lưu người dùng hiện tại
+            System.out.println("Đăng nhập thành công với vai trò: " + user.getChucVu());
             HomeUI homeUI = new HomeUI();
             homeUI.start(primaryStage);
         } else {
