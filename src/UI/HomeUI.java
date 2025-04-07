@@ -36,7 +36,7 @@ public class HomeUI extends Application {
 
         dataManager = DataManager.getInstance();
 
-        mediaView = loadVideo("src/img/nen.mp4");
+        mediaView = loadVideo("asrc/img/nen.mp4");
         mediaView.setPreserveRatio(false);
 
         BorderPane menu = buildSidebarMenu();
@@ -136,7 +136,7 @@ public class HomeUI extends Application {
         boolean isQuanLy = currentUser != null && "Quản lý".equals(currentUser.getChucVu());
 
         addExpandableMenu(menuItems, "Khách hàng", "Quản lý khách hàng", "Tìm kiếm khách hàng");
-        addExpandableMenu(menuItems, "Phòng", "Đặt phòng", "Quản lý phòng", "Tìm kiếm phòng");
+        addExpandableMenu(menuItems, "Phòng", "Đặt phòng", "Quản lý phòng", "Quản lý đặt phòng", "Tìm kiếm phòng");
         addExpandableMenu(menuItems, "Dịch vụ", "Quản lý dịch vụ", "Tìm kiếm dịch vụ");
         addExpandableMenu(menuItems, "Hóa đơn", "Quản lý hóa đơn", "Quản lý doanh thu", "Tìm kiếm hóa đơn");
         addExpandableMenu(menuItems, "CT Khuyến mãi", "Quản lý khuyến mãi", "Tìm kiếm khuyến mãi");
@@ -183,8 +183,7 @@ public class HomeUI extends Application {
         boolean isQuanLy = currentUser != null && "Quản lý".equals(currentUser.getChucVu());
 
         for (String item : items) {
-            if (!isQuanLy && (item.equals("Quản lý doanh thu") || item.equals("Quản lý nhân viên") ||
-                              item.equals("Tìm kiếm nhân viên") || item.equals("Quản lý dịch vụ") ||
+            if (!isQuanLy && (item.equals("Quản lý doanh thu") || item.equals("Quản lý dịch vụ") ||
                               item.equals("Quản lý khuyến mãi"))) {
                 continue;
             }
@@ -199,6 +198,13 @@ public class HomeUI extends Application {
                     }
                     subBtn.setStyle(createSelectedStyle());
                     selectedButton = subBtn;
+
+                    // Kiểm tra nếu người dùng chưa đăng nhập
+                    if (currentUser == null) {
+                        showPermissionDeniedAlert("Vui lòng đăng nhập để sử dụng chức năng này.");
+                        performLogout();
+                        return;
+                    }
 
                     switch (item) {
                         case "Quản lý khách hàng":
@@ -217,6 +223,10 @@ public class HomeUI extends Application {
                             QLphongUI qlPhongUI = new QLphongUI();
                             slidePane.getChildren().setAll(qlPhongUI.getUI());
                             break;
+                        case "Quản lý đặt phòng":
+                            QLdatphongUI qlDatPhongUI = new QLdatphongUI();
+                            slidePane.getChildren().setAll(qlDatPhongUI.getUI());
+                            break;
                         case "Tìm kiếm phòng":
                             TimkiemphongUI tkPhongUI = new TimkiemphongUI();
                             slidePane.getChildren().setAll(tkPhongUI.getUI());
@@ -230,8 +240,12 @@ public class HomeUI extends Application {
                             slidePane.getChildren().setAll(tkDvUI.getUI());
                             break;
                         case "Quản lý nhân viên":
-                            QLNV qlNvUI = new QLNV();
-                            slidePane.getChildren().setAll(qlNvUI.getUI());
+                            if (isQuanLy) {
+                                QLNV qlNvUI = new QLNV();
+                                slidePane.getChildren().setAll(qlNvUI.getUI());
+                            } else {
+                                showPermissionDeniedAlert("Chỉ Quản lý mới có thể truy cập Quản lý nhân viên.");
+                            }
                             break;
                         case "Tìm kiếm nhân viên":
                             TimKiemNV tkNvUI = new TimKiemNV();
@@ -327,6 +341,14 @@ public class HomeUI extends Application {
         label.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         pane.getChildren().add(label);
         slidePane.getChildren().setAll(pane);
+    }
+
+    private void showPermissionDeniedAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("Không có quyền truy cập");
+        alert.setHeaderText("Bạn không có quyền vào chức năng này");
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     private Button createStyledButton(String text) {
