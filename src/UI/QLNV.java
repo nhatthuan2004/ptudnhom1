@@ -27,23 +27,21 @@ public class QLNV {
         mainPane.setStyle("-fx-background-color: #f0f0f0;");
         mainPane.setPrefSize(1120, 800);
 
-        HBox userInfoBox;
-        try {
-            userInfoBox = UserInfoBox.createUserInfoBox();
-        } catch (Exception e) {
-            userInfoBox = new HBox(new Label("User Info Placeholder"));
-            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
-        }
+        HBox userInfoBox = UserInfoBox.createUserInfoBox();
         userInfoBox.setPrefSize(200, 50);
         userInfoBox.setMaxSize(200, 50);
         StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
+
+        NhanVien currentUser = UserInfoBox.getCurrentUser();
+        boolean isQuanLy = currentUser != null && "Quản lý".equals(currentUser.getChucVu());
 
         Button addButton = new Button("+ Thêm nhân viên");
         addButton.setStyle(
             "-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; " +
             "-fx-padding: 6 12; -fx-background-radius: 6;"
         );
+        addButton.setVisible(isQuanLy); // Chỉ quản lý mới được thêm
         addButton.setOnAction(e -> showNhanVienForm(null));
 
         HBox addBox = new HBox(addButton);
@@ -91,6 +89,7 @@ public class QLNV {
             private final Button btnEdit = new Button("Sửa");
             {
                 btnEdit.setStyle("-fx-background-color: #FFA500; -fx-text-fill: white;");
+                btnEdit.setVisible(isQuanLy); // Chỉ quản lý mới được sửa
             }
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -110,6 +109,7 @@ public class QLNV {
             private final Button btnDelete = new Button("Xóa");
             {
                 btnDelete.setStyle("-fx-background-color: #FF0000; -fx-text-fill: white;");
+                btnDelete.setVisible(isQuanLy); // Chỉ quản lý mới được xóa
             }
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -148,13 +148,7 @@ public class QLNV {
     }
 
     public StackPane getUI() {
-        danhSachNhanVien.clear(); // Xóa dữ liệu cũ để đảm bảo có admin/12345
-        System.out.println("Đã xóa danh sách nhân viên");
-        if (danhSachNhanVien.isEmpty()) {
-            danhSachNhanVien.add(new NhanVien("NV001", "Admin", "0123456789", true, "Hà Nội", "Quản lý", 10000000, "admin", "12345", "Đang làm"));
-            System.out.println("Đã tạo nhân viên mặc định: admin/12345");
-        }
-        showLoginForm();
+        contentPane.getChildren().setAll(mainPane);
         return contentPane;
     }
 
@@ -278,7 +272,7 @@ public class QLNV {
                     return;
                 }
                 NhanVien newNhanVien = new NhanVien(maNhanVien, tenNhanVien, soDienThoai, gioiTinh, diaChi, chucVu, luong, taiKhoan, matKhau, trangThai);
-                danhSachNhanVien.add(newNhanVien);
+                dataManager.addNhanVien(newNhanVien);
             } else {
                 nhanVien.setTenNhanVien(tenNhanVien);
                 nhanVien.setSoDienThoai(soDienThoai);
@@ -303,49 +297,6 @@ public class QLNV {
 
         form.getChildren().addAll(grid, footer);
         contentPane.getChildren().setAll(form);
-    }
-
-    private void showLoginForm() {
-        VBox loginForm = new VBox(10);
-        loginForm.setAlignment(Pos.CENTER);
-        loginForm.setPadding(new Insets(20));
-        loginForm.setStyle(
-            "-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
-            "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);"
-        );
-        loginForm.setMaxWidth(300);
-        loginForm.setMaxHeight(200);
-
-        Label title = new Label("Đăng nhập");
-        title.setStyle("-fx-font-weight: bold; -fx-font-size: 16;");
-
-        TextField tfTaiKhoan = new TextField();
-        tfTaiKhoan.setPromptText("Tài khoản...");
-
-        PasswordField pfMatKhau = new PasswordField();
-        pfMatKhau.setPromptText("Mật khẩu...");
-
-        Button btnDangNhap = new Button("Đăng nhập");
-        btnDangNhap.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
-        btnDangNhap.setOnAction(e -> {
-            String taiKhoan = tfTaiKhoan.getText();
-            String matKhau = pfMatKhau.getText();
-            if (login(taiKhoan, matKhau)) {
-                contentPane.getChildren().setAll(mainPane);
-            } else {
-                showAlert("Lỗi đăng nhập", "Tài khoản hoặc mật khẩu không đúng, hoặc nhân viên đã nghỉ việc!");
-            }
-        });
-
-        loginForm.getChildren().addAll(title, tfTaiKhoan, pfMatKhau, btnDangNhap);
-        contentPane.getChildren().setAll(loginForm);
-    }
-
-    public boolean login(String taiKhoan, String matKhau) {
-        boolean result = danhSachNhanVien.stream()
-                .anyMatch(nv -> nv.getTaiKhoan().equals(taiKhoan) && nv.getMatKhau().equals(matKhau) && "Đang làm".equals(nv.getTrangThai()));
-        System.out.println("Đăng nhập: " + taiKhoan + "/" + matKhau + " -> Kết quả: " + result);
-        return result;
     }
 
     private void showAlert(String title, String message) {
