@@ -1,5 +1,6 @@
 package UI;
 
+import dao.Phong_Dao;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -9,6 +10,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import model.*;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +23,7 @@ public class QLphongUI {
     private StackPane contentPane;
     private StackPane mainPane;
     private final List<HoaDon> hoaDonPhongList = new ArrayList<>();
+    private final Phong_Dao phongDao;
 
     private DatePicker dpNgay;
     private ComboBox<String> cbGio;
@@ -30,8 +33,13 @@ public class QLphongUI {
     private CheckBox showAllCheckBox;
 
     public QLphongUI() {
+        try {	
+            phongDao = new Phong_Dao();
+            phongList = FXCollections.observableArrayList(phongDao.getAllPhong());
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể kết nối tới cơ sở dữ liệu!", e);
+        }
         DataManager dataManager = DataManager.getInstance();
-        this.phongList = dataManager.getPhongList();
         this.hoaDonList = dataManager.getHoaDonList();
         this.khachHangList = dataManager.getKhachHangList();
         this.dichVuList = dataManager.getDichVuList();
@@ -57,19 +65,18 @@ public class QLphongUI {
         BorderPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         BorderPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
-        // Bên trái: infoPane
         VBox infoPane = new VBox(15);
         infoPane.setPadding(new Insets(10, 20, 20, 20));
         infoPane.setAlignment(Pos.TOP_LEFT);
-        infoPane.setPrefWidth(300); // Thêm để cân đối
+        infoPane.setPrefWidth(300);
 
         double labelWidth = 120;
 
         Label labelNgay = new Label("Ngày:");
         labelNgay.setMinWidth(labelWidth);
         dpNgay = new DatePicker(java.time.LocalDate.now());
-        dpNgay.setPrefWidth(250); // Tăng từ 200 lên 250
-        dpNgay.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+        dpNgay.setPrefWidth(250);
+        dpNgay.setStyle("-fx-font-size: 14px;");
         HBox hboxNgay = new HBox(10, labelNgay, dpNgay);
         hboxNgay.setAlignment(Pos.CENTER_LEFT);
 
@@ -80,8 +87,8 @@ public class QLphongUI {
             cbGio.getItems().add(String.format("%02d:00", i));
         }
         cbGio.setPromptText("Chọn giờ");
-        cbGio.setPrefWidth(250); // Tăng từ 200 lên 250
-        cbGio.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+        cbGio.setPrefWidth(250);
+        cbGio.setStyle("-fx-font-size: 14px;");
         HBox hboxGio = new HBox(10, labelGio, cbGio);
         hboxGio.setAlignment(Pos.CENTER_LEFT);
 
@@ -90,8 +97,8 @@ public class QLphongUI {
         cbTrangThaiPhong = new ComboBox<>();
         cbTrangThaiPhong.getItems().addAll("Trống", "Đã đặt", "Đang sửa");
         cbTrangThaiPhong.setPromptText("Chọn trạng thái");
-        cbTrangThaiPhong.setPrefWidth(250); // Tăng từ 200 lên 250
-        cbTrangThaiPhong.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+        cbTrangThaiPhong.setPrefWidth(250);
+        cbTrangThaiPhong.setStyle("-fx-font-size: 14px;");
         HBox hboxTrangThaiPhong = new HBox(10, labelTrangThaiPhong, cbTrangThaiPhong);
         hboxTrangThaiPhong.setAlignment(Pos.CENTER_LEFT);
 
@@ -100,8 +107,8 @@ public class QLphongUI {
         cbLoaiPhong = new ComboBox<>();
         cbLoaiPhong.getItems().addAll("Đơn", "Đôi", "VIP");
         cbLoaiPhong.setPromptText("Chọn loại phòng");
-        cbLoaiPhong.setPrefWidth(250); // Tăng từ 200 lên 250
-        cbLoaiPhong.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+        cbLoaiPhong.setPrefWidth(250);
+        cbLoaiPhong.setStyle("-fx-font-size: 14px;");
         HBox hboxLoaiPhong = new HBox(10, labelLoaiPhong, cbLoaiPhong);
         hboxLoaiPhong.setAlignment(Pos.CENTER_LEFT);
 
@@ -110,38 +117,37 @@ public class QLphongUI {
         cbTrangThaiDonDep = new ComboBox<>();
         cbTrangThaiDonDep.getItems().addAll("Đã dọn dẹp", "Chưa dọn dẹp");
         cbTrangThaiDonDep.setPromptText("Chọn trạng thái dọn dẹp");
-        cbTrangThaiDonDep.setPrefWidth(250); // Tăng từ 200 lên 250
-        cbTrangThaiDonDep.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+        cbTrangThaiDonDep.setPrefWidth(250);
+        cbTrangThaiDonDep.setStyle("-fx-font-size: 14px;");
         HBox hboxTrangThaiDonDep = new HBox(10, labelTrangThaiDonDep, cbTrangThaiDonDep);
         hboxTrangThaiDonDep.setAlignment(Pos.CENTER_LEFT);
 
         Button addRoomButton = new Button("Thêm Phòng");
         addRoomButton.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
-        addRoomButton.setPrefWidth(200); // Thêm chiều rộng
+        addRoomButton.setPrefWidth(200);
         addRoomButton.setOnAction(e -> showAddRoomDialog());
         HBox hboxAddRoom = new HBox(10, new Label(""), addRoomButton);
         hboxAddRoom.setAlignment(Pos.CENTER_LEFT);
 
         showAllCheckBox = new CheckBox("Hiển thị tất cả phòng");
-        showAllCheckBox.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+        showAllCheckBox.setStyle("-fx-font-size: 14px;");
         showAllCheckBox.setOnAction(e -> filterRooms());
         HBox hboxShowAll = new HBox(10, new Label(""), showAllCheckBox);
         hboxShowAll.setAlignment(Pos.CENTER_LEFT);
 
         infoPane.getChildren().addAll(hboxNgay, hboxGio, hboxTrangThaiPhong, hboxLoaiPhong, hboxTrangThaiDonDep, hboxAddRoom, hboxShowAll);
 
-        // Bên phải: roomPane
         VBox roomPane = new VBox(10);
         roomPane.setPadding(new Insets(10, 25, 25, 25));
         roomPane.setAlignment(Pos.TOP_CENTER);
-        roomPane.setPrefWidth(550); // Thêm để cân đối
+        roomPane.setPrefWidth(550);
         roomPane.setMaxHeight(465);
 
         roomFlowPane = new FlowPane();
         roomFlowPane.setHgap(20);
         roomFlowPane.setVgap(20);
         roomFlowPane.setAlignment(Pos.CENTER);
-        roomFlowPane.setPrefWidth(530); // Thêm để phù hợp với roomPane
+        roomFlowPane.setPrefWidth(530);
 
         cbTrangThaiDonDep.setOnAction(e -> filterRooms());
         cbTrangThaiPhong.setOnAction(e -> filterRooms());
@@ -160,12 +166,12 @@ public class QLphongUI {
 
         GridPane gridLayout = new GridPane();
         gridLayout.setPadding(new Insets(10));
-        gridLayout.setHgap(25); // Tăng từ 20 lên 25
+        gridLayout.setHgap(25);
         gridLayout.add(infoPane, 0, 0);
         gridLayout.add(roomPane, 1, 0);
         GridPane.setValignment(infoPane, VPos.TOP);
         GridPane.setValignment(roomPane, VPos.TOP);
-        GridPane.setHgrow(roomPane, Priority.ALWAYS); // Thay Vgrow thành Hgrow để roomPane mở rộng ngang
+        GridPane.setHgrow(roomPane, Priority.ALWAYS);
 
         VBox layoutMain = new VBox(10, gridLayout);
         layoutMain.setAlignment(Pos.TOP_CENTER);
@@ -192,7 +198,7 @@ public class QLphongUI {
                 matches = false;
             if (loaiPhong != null && !phong.getLoaiPhong().equals(loaiPhong))
                 matches = false;
-            if (donDep != null && !phong.getMoTa().contains(donDep))
+            if (donDep != null && !phong.getDonDep().equals(donDep))
                 matches = false;
             if (matches || showAllCheckBox.isSelected())
                 filteredList.add(phong);
@@ -204,7 +210,7 @@ public class QLphongUI {
         roomFlowPane.getChildren().clear();
         for (Phong phong : displayList) {
             VBox roomBox = new VBox(8);
-            roomBox.setPrefSize(180, 150); // Tăng từ 160, 130 lên 180, 150
+            roomBox.setPrefSize(180, 150);
             roomBox.setPadding(new Insets(10));
             roomBox.setAlignment(Pos.CENTER_LEFT);
             String bgColor = switch (phong.getTrangThai()) {
@@ -219,23 +225,25 @@ public class QLphongUI {
             Label maPhongLabel = new Label("Phòng: " + phong.getMaPhong());
             maPhongLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
             Label loaiPhongLabel = new Label("Loại: " + phong.getLoaiPhong());
-            loaiPhongLabel.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+            loaiPhongLabel.setStyle("-fx-font-size: 14px;");
             Label trangThaiLabel = new Label("Trạng thái: " + phong.getTrangThai());
-            trangThaiLabel.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+            trangThaiLabel.setStyle("-fx-font-size: 14px;");
+            Label donDepLabel = new Label("Dọn dẹp: " + phong.getDonDep());
 
             HoaDon hoaDon = hoaDonList.stream()
                     .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
                     .findFirst()
                     .orElse(null);
             Label khachHangLabel = new Label("Khách: " + (hoaDon != null ? hoaDon.getTenKhachHang() : "Không có"));
-            khachHangLabel.setStyle("-fx-font-size: 14px;"); // Thêm font-size
+            khachHangLabel.setStyle("-fx-font-size: 14px;");
 
-            maPhongLabel.setMaxWidth(160); // Tăng từ 140 lên 160
+            maPhongLabel.setMaxWidth(160);
             loaiPhongLabel.setMaxWidth(160);
             trangThaiLabel.setMaxWidth(160);
+            donDepLabel.setMaxWidth(160);
             khachHangLabel.setMaxWidth(160);
 
-            roomBox.getChildren().addAll(maPhongLabel, loaiPhongLabel, trangThaiLabel, khachHangLabel);
+            roomBox.getChildren().addAll(maPhongLabel, loaiPhongLabel, trangThaiLabel, donDepLabel, khachHangLabel);
             roomFlowPane.getChildren().add(roomBox);
         }
     }
@@ -250,7 +258,7 @@ public class QLphongUI {
         form.setPadding(new Insets(20));
         form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
         form.setMaxWidth(500);
-        form.setMaxHeight(400);
+        form.setMaxHeight(600);
 
         Label title = new Label(titleText);
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 16;");
@@ -265,52 +273,99 @@ public class QLphongUI {
 
         TextField maPhongField = new TextField();
         maPhongField.setPromptText("Mã phòng (e.g., P401)");
+        maPhongField.setDisable(true); // Mã phòng sẽ được sinh tự động
         ComboBox<String> loaiPhongCombo = new ComboBox<>();
         loaiPhongCombo.getItems().addAll("Đơn", "Đôi", "VIP");
         loaiPhongCombo.setPromptText("Chọn loại phòng");
+        TextField giaPhongField = new TextField();
+        giaPhongField.setPromptText("Giá phòng (VD: 300000)");
         ComboBox<String> trangThaiCombo = new ComboBox<>();
         trangThaiCombo.getItems().addAll("Trống", "Đã đặt", "Đang sửa");
         trangThaiCombo.setPromptText("Chọn trạng thái");
+        ComboBox<String> donDepCombo = new ComboBox<>();
+        donDepCombo.getItems().addAll("Đã dọn dẹp", "Chưa dọn dẹp");
+        donDepCombo.setPromptText("Chọn trạng thái dọn dẹp");
+        TextField viTriField = new TextField();
+        viTriField.setPromptText("Vị trí (e.g., Tầng 4)");
+        TextField soNguoiToiDaField = new TextField();
+        soNguoiToiDaField.setPromptText("Số người tối đa (e.g., 2)");
+        TextField moTaField = new TextField();
+        moTaField.setPromptText("Mô tả (e.g., Phòng sạch sẽ)");
+
+        try {
+            maPhongField.setText(phongDao.getNextMaPhong()); // Sinh mã tự động
+        } catch (SQLException e) {
+            showAlert("Lỗi", "Không thể sinh mã phòng: " + e.getMessage());
+            return;
+        }
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setAlignment(Pos.CENTER);
-        grid.add(new Label("Mã Phòng:"), 0, 0);
-        grid.add(maPhongField, 1, 0);
-        grid.add(new Label("Loại Phòng:"), 0, 1);
-        grid.add(loaiPhongCombo, 1, 1);
-        grid.add(new Label("Trạng Thái:"), 0, 2);
-        grid.add(trangThaiCombo, 1, 2);
+        grid.addRow(0, new Label("Mã Phòng:"), maPhongField);
+        grid.addRow(1, new Label("Loại Phòng:"), loaiPhongCombo);
+        grid.addRow(2, new Label("Giá Phòng:"), giaPhongField);
+        grid.addRow(3, new Label("Trạng Thái:"), trangThaiCombo);
+        grid.addRow(4, new Label("Dọn Dẹp:"), donDepCombo);
+        grid.addRow(5, new Label("Vị Trí:"), viTriField);
+        grid.addRow(6, new Label("Số Người Tối Đa:"), soNguoiToiDaField);
+        grid.addRow(7, new Label("Mô Tả:"), moTaField);
 
         Button btnThem = new Button("Thêm");
         btnThem.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
         btnThem.setOnAction(e -> {
             String maPhong = maPhongField.getText();
             String loaiPhong = loaiPhongCombo.getValue();
+            String giaPhongText = giaPhongField.getText();
             String trangThai = trangThaiCombo.getValue();
+            String donDep = donDepCombo.getValue();
+            String viTri = viTriField.getText();
+            String soNguoiToiDaText = soNguoiToiDaField.getText();
+            String moTa = moTaField.getText();
 
-            if (maPhong.isEmpty() || loaiPhong == null || trangThai == null) {
+            if (maPhong.isEmpty() || loaiPhong == null || giaPhongText.isEmpty() || trangThai == null ||
+                donDep == null || viTri.isEmpty() || soNguoiToiDaText.isEmpty() || moTa.isEmpty()) {
                 showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
                 return;
             }
 
-            if (phongList.stream().anyMatch(p -> p.getMaPhong().equals(maPhong))) {
-                showAlert("Lỗi", "Mã phòng " + maPhong + " đã tồn tại!");
+            double giaPhong;
+            try {
+                giaPhong = Double.parseDouble(giaPhongText);
+                if (giaPhong <= 0) {
+                    showAlert("Lỗi", "Giá phòng phải lớn hơn 0!");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                showAlert("Lỗi", "Giá phòng phải là số hợp lệ!");
                 return;
             }
 
-            double giaPhong = switch (loaiPhong) {
-                case "Đơn" -> 300000;
-                case "Đôi" -> 500000;
-                case "VIP" -> 1000000;
-                default -> 0;
-            };
-            Phong newPhong = new Phong(maPhong, loaiPhong, giaPhong, trangThai, "Tầng " + maPhong.charAt(1), loaiPhong.equals("Đơn") ? 2 : 4, "Phòng " + loaiPhong + " sạch sẽ");
-            phongList.add(newPhong);
+            int soNguoiToiDa;
+            try {
+                soNguoiToiDa = Integer.parseInt(soNguoiToiDaText);
+                if (soNguoiToiDa <= 0) {
+                    showAlert("Lỗi", "Số người tối đa phải lớn hơn 0!");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                showAlert("Lỗi", "Số người tối đa phải là số nguyên hợp lệ!");
+                return;
+            }
 
-            updateRoomDisplayDirectly();
-            contentPane.getChildren().setAll(mainPane);
+            Phong newPhong = new Phong(maPhong, loaiPhong, giaPhong, trangThai, donDep, viTri, soNguoiToiDa, moTa);
+            try {
+                if (phongDao.themPhong(newPhong)) {
+                    phongList.add(newPhong);
+                    updateRoomDisplayDirectly();
+                    contentPane.getChildren().setAll(mainPane);
+                } else {
+                    showAlert("Lỗi", "Không thể thêm phòng!");
+                }
+            } catch (SQLException ex) {
+                showAlert("Lỗi", "Không thể thêm phòng: " + ex.getMessage());
+            }
         });
 
         Button btnHuy = new Button("Hủy");
@@ -332,10 +387,14 @@ public class QLphongUI {
 
         Label phongLabel = new Label("Thông tin phòng:");
         phongLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14;");
-        Label maPhong = new Label("Mã phòng: " + phong.getMaPhong());
-        Label loaiPhong = new Label("Loại phòng: " + phong.getLoaiPhong());
-        Label trangThai = new Label("Trạng thái: " + phong.getTrangThai());
-        Label viTri = new Label("Vị trí: " + phong.getViTri());
+        Label maPhongLabel = new Label("Mã phòng: " + phong.getMaPhong());
+        Label loaiPhongLabel = new Label("Loại phòng: " + phong.getLoaiPhong());
+        Label giaPhongLabel = new Label("Giá phòng: " + phong.getGiaPhong());
+        Label trangThaiLabel = new Label("Trạng thái: " + phong.getTrangThai());
+        Label donDepLabel = new Label("Dọn dẹp: " + phong.getDonDep());
+        Label viTriLabel = new Label("Vị trí: " + phong.getViTri());
+        Label soNguoiToiDaLabel = new Label("Số người tối đa: " + phong.getSoNguoiToiDa());
+        Label moTaLabel = new Label("Mô tả: " + phong.getMoTa());
 
         HoaDon hoaDon = hoaDonList.stream()
                 .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
@@ -343,7 +402,8 @@ public class QLphongUI {
                 .orElse(null);
         Label khachHangLabel = new Label("Khách hàng: " + (hoaDon != null ? hoaDon.getTenKhachHang() : "Không có"));
 
-        content.getChildren().addAll(phongLabel, maPhong, loaiPhong, trangThai, viTri, khachHangLabel);
+        content.getChildren().addAll(phongLabel, maPhongLabel, loaiPhongLabel, giaPhongLabel, trangThaiLabel,
+                donDepLabel, viTriLabel, soNguoiToiDaLabel, moTaLabel, khachHangLabel);
 
         HBox buttons = new HBox(10);
         buttons.setAlignment(Pos.CENTER);
@@ -369,8 +429,14 @@ public class QLphongUI {
         maPhongField.setDisable(true);
         ComboBox<String> loaiPhongCombo = new ComboBox<>(FXCollections.observableArrayList("Đơn", "Đôi", "VIP"));
         loaiPhongCombo.setValue(phong.getLoaiPhong());
+        TextField giaPhongField = new TextField(String.valueOf(phong.getGiaPhong()));
         ComboBox<String> trangThaiCombo = new ComboBox<>(FXCollections.observableArrayList("Trống", "Đã đặt", "Đang sửa"));
         trangThaiCombo.setValue(phong.getTrangThai());
+        ComboBox<String> donDepCombo = new ComboBox<>(FXCollections.observableArrayList("Đã dọn dẹp", "Chưa dọn dẹp"));
+        donDepCombo.setValue(phong.getDonDep());
+        TextField viTriField = new TextField(phong.getViTri());
+        TextField soNguoiToiDaField = new TextField(String.valueOf(phong.getSoNguoiToiDa()));
+        TextField moTaField = new TextField(phong.getMoTa());
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -378,16 +444,51 @@ public class QLphongUI {
         grid.setAlignment(Pos.CENTER);
         grid.addRow(0, new Label("Mã Phòng:"), maPhongField);
         grid.addRow(1, new Label("Loại Phòng:"), loaiPhongCombo);
-        grid.addRow(2, new Label("Trạng Thái:"), trangThaiCombo);
+        grid.addRow(2, new Label("Giá Phòng:"), giaPhongField);
+        grid.addRow(3, new Label("Trạng Thái:"), trangThaiCombo);
+        grid.addRow(4, new Label("Dọn Dẹp:"), donDepCombo);
+        grid.addRow(5, new Label("Vị Trí:"), viTriField);
+        grid.addRow(6, new Label("Số Người Tối Đa:"), soNguoiToiDaField);
+        grid.addRow(7, new Label("Mô Tả:"), moTaField);
 
         Button btnLuu = new Button("Lưu");
         btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
         btnLuu.setOnAction(e -> {
             String loaiPhong = loaiPhongCombo.getValue();
+            String giaPhongText = giaPhongField.getText();
             String trangThai = trangThaiCombo.getValue();
+            String donDep = donDepCombo.getValue();
+            String viTri = viTriField.getText();
+            String soNguoiToiDaText = soNguoiToiDaField.getText();
+            String moTa = moTaField.getText();
 
-            if (loaiPhong == null || trangThai == null) {
-                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin phòng!");
+            if (loaiPhong == null || giaPhongText.isEmpty() || trangThai == null || donDep == null ||
+                viTri.isEmpty() || soNguoiToiDaText.isEmpty() || moTa.isEmpty()) {
+                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
+                return;
+            }
+
+            double giaPhong;
+            try {
+                giaPhong = Double.parseDouble(giaPhongText);
+                if (giaPhong <= 0) {
+                    showAlert("Lỗi", "Giá phòng phải lớn hơn 0!");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                showAlert("Lỗi", "Giá phòng phải là số hợp lệ!");
+                return;
+            }
+
+            int soNguoiToiDa;
+            try {
+                soNguoiToiDa = Integer.parseInt(soNguoiToiDaText);
+                if (soNguoiToiDa <= 0) {
+                    showAlert("Lỗi", "Số người tối đa phải lớn hơn 0!");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                showAlert("Lỗi", "Số người tối đa phải là số nguyên hợp lệ!");
                 return;
             }
 
@@ -400,18 +501,19 @@ public class QLphongUI {
                 return;
             }
 
-            int index = phongList.indexOf(phong);
-            double giaPhong = switch (loaiPhong) {
-                case "Đơn" -> 300000;
-                case "Đôi" -> 500000;
-                case "VIP" -> 1000000;
-                default -> phong.getGiaPhong();
-            };
-            Phong updatedPhong = new Phong(phong.getMaPhong(), loaiPhong, giaPhong, trangThai, phong.getViTri(), phong.getSoNguoiToiDa(), phong.getMoTa());
-            phongList.set(index, updatedPhong);
-
-            updateRoomDisplayDirectly();
-            contentPane.getChildren().setAll(mainPane);
+            Phong updatedPhong = new Phong(phong.getMaPhong(), loaiPhong, giaPhong, trangThai, donDep, viTri, soNguoiToiDa, moTa);
+            try {
+                if (phongDao.suaPhong(updatedPhong)) {
+                    int index = phongList.indexOf(phong);
+                    phongList.set(index, updatedPhong);
+                    updateRoomDisplayDirectly();
+                    contentPane.getChildren().setAll(mainPane);
+                } else {
+                    showAlert("Lỗi", "Không thể sửa phòng!");
+                }
+            } catch (SQLException ex) {
+                showAlert("Lỗi", "Không thể sửa phòng: " + ex.getMessage());
+            }
         });
 
         Button btnXoa = new Button("Xóa");
@@ -432,9 +534,17 @@ public class QLphongUI {
             confirm.setContentText("Phòng: " + phong.getMaPhong());
             confirm.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.OK) {
-                    phongList.remove(phong);
-                    updateRoomDisplayDirectly();
-                    contentPane.getChildren().setAll(mainPane);
+                    try {
+                        if (phongDao.xoaPhong(phong.getMaPhong())) {
+                            phongList.remove(phong);
+                            updateRoomDisplayDirectly();
+                            contentPane.getChildren().setAll(mainPane);
+                        } else {
+                            showAlert("Lỗi", "Không thể xóa phòng!");
+                        }
+                    } catch (SQLException ex) {
+                        showAlert("Lỗi", "Không thể xóa phòng: " + ex.getMessage());
+                    }
                 }
             });
         });

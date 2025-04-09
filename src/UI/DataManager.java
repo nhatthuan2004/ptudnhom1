@@ -4,12 +4,14 @@ import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import model.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import dao.KhachHang_Dao;
 
+import dao.DichVu_Dao;
+import dao.KhachHang_Dao;
+import dao.KhuyenMai_Dao;
+import dao.Phong_Dao;
 
 public class DataManager {
     private static DataManager instance;
@@ -17,7 +19,7 @@ public class DataManager {
     private final ObservableList<HoaDon> hoaDonList = FXCollections.observableArrayList();
     private final ObservableList<KhachHang> khachHangList = FXCollections.observableArrayList();
     private final ObservableList<DichVu> dichVuList = FXCollections.observableArrayList();
-    private final ObservableList<ChuongTrinhKhuyenMai> khuyenMaiList = FXCollections.observableArrayList();
+    private final ObservableList<KhuyenMai> khuyenMaiList = FXCollections.observableArrayList();
     private final ObservableList<NhanVien> nhanVienList = FXCollections.observableArrayList();
     private final List<Runnable> phongListChangeListeners = new ArrayList<>();
     private final List<Runnable> hoaDonListChangeListeners = new ArrayList<>();
@@ -26,7 +28,9 @@ public class DataManager {
     private final List<Runnable> khuyenMaiListChangeListeners = new ArrayList<>();
     private final List<Runnable> nhanVienListChangeListeners = new ArrayList<>();
     private final KhachHang_Dao khachHangDao = new KhachHang_Dao();
-
+    private final DichVu_Dao dichVuDao = new DichVu_Dao();
+    private final KhuyenMai_Dao khuyenMaiDao = new KhuyenMai_Dao();
+    private final Phong_Dao phongDao = new Phong_Dao();
 
     private DataManager() {
         // Listener cho từng danh sách
@@ -34,7 +38,7 @@ public class DataManager {
         hoaDonList.addListener((ListChangeListener<HoaDon>) change -> notifyListeners(hoaDonListChangeListeners));
         khachHangList.addListener((ListChangeListener<KhachHang>) change -> notifyListeners(khachHangListChangeListeners));
         dichVuList.addListener((ListChangeListener<DichVu>) change -> notifyListeners(dichVuListChangeListeners));
-        khuyenMaiList.addListener((ListChangeListener<ChuongTrinhKhuyenMai>) change -> notifyListeners(khuyenMaiListChangeListeners));
+        khuyenMaiList.addListener((ListChangeListener<KhuyenMai>) change -> notifyListeners(khuyenMaiListChangeListeners));
         nhanVienList.addListener((ListChangeListener<NhanVien>) change -> notifyListeners(nhanVienListChangeListeners));
     }
 
@@ -49,11 +53,10 @@ public class DataManager {
     private void initializeSampleData() {
         // Phong
         if (phongList.isEmpty()) {
-            phongList.addAll(
-                new Phong("P101", "Đơn", 300000.0, "Trống", "Tầng 1", 2, "Phòng đơn sạch sẽ"),
-                new Phong("P102", "Đôi", 500000.0, "Đã đặt", "Tầng 2", 4, "Phòng đôi tiện nghi"),
-                new Phong("P103", "VIP", 1000000.0, "Đang sửa", "Tầng 3", 6, "Phòng VIP sang trọng")
-            );
+            List<Phong> dsPhong = phongDao.getAllPhong();
+            if (dsPhong != null) {
+                phongList.addAll(dsPhong);
+            }
         }
 
         // KhachHang
@@ -63,8 +66,8 @@ public class DataManager {
                 khachHangList.addAll(dsKhachHang);
             }
         }
+
         // NhanVien
-     // NhanVien
         if (nhanVienList.isEmpty()) {
             nhanVienList.addAll(
                 new NhanVien("NV001", "Nguyễn Văn A", "0901234567", true, "123 Đường ABC", "Quản lý", 15000000.0, "nva", "password123", "Đang làm"),
@@ -74,18 +77,18 @@ public class DataManager {
 
         // DichVu
         if (dichVuList.isEmpty()) {
-            dichVuList.addAll(
-                new DichVu("DV001", "Ăn uống", 100000.0, "Bữa sáng tự chọn", "Hoạt động"),
-                new DichVu("DV002", "Spa", 200000.0, "Massage thư giãn", "Hoạt động")
-            );
+            List<DichVu> dsDichVu = dichVuDao.getAllDichVu();
+            if (dsDichVu != null) {
+                dichVuList.addAll(dsDichVu);
+            }
         }
 
         // ChuongTrinhKhuyenMai
         if (khuyenMaiList.isEmpty()) {
-            khuyenMaiList.addAll(
-                new ChuongTrinhKhuyenMai("KM001", "Giảm 10%", 10.0, "Giảm 10% cho tất cả dịch vụ", true),
-                new ChuongTrinhKhuyenMai("KM002", "Ưu đãi phòng VIP", 20.0, "Giảm 20% cho phòng VIP", false)
-            );
+            List<KhuyenMai> dsKhuyenMai = khuyenMaiDao.getAllKhuyenMai();
+            if (dsKhuyenMai != null) {
+                khuyenMaiList.addAll(dsKhuyenMai);
+            }
         }
 
         // HoaDon
@@ -101,7 +104,7 @@ public class DataManager {
                 "Hóa đơn phòng P102", "Thẻ tín dụng", "KH002", "NV002"
             );
             hoaDonList.addAll(hd1, hd2);
-            khachHangList.get(0).addHoaDon(hd1, hoaDonList); // Truyền hoaDonList
+            khachHangList.get(0).addHoaDon(hd1, hoaDonList);
             khachHangList.get(1).addHoaDon(hd2, hoaDonList);
             nhanVienList.get(0).addHoaDon(hd1, hoaDonList);
             nhanVienList.get(1).addHoaDon(hd2, hoaDonList);
@@ -113,8 +116,14 @@ public class DataManager {
     public ObservableList<HoaDon> getHoaDonList() { return hoaDonList; }
     public ObservableList<KhachHang> getKhachHangList() { return khachHangList; }
     public ObservableList<DichVu> getDichVuList() { return dichVuList; }
-    public ObservableList<ChuongTrinhKhuyenMai> getKhuyenMaiList() { return khuyenMaiList; }
+    public ObservableList<KhuyenMai> getKhuyenMaiList() { return khuyenMaiList; }
     public ObservableList<NhanVien> getNhanVienList() { return nhanVienList; }
+
+    // Setters
+    public void setPhongList(ObservableList<Phong> newPhongList) {
+        phongList.clear();
+        phongList.addAll(newPhongList);
+    }
 
     // Add Listeners
     public void addPhongListChangeListener(Runnable listener) { phongListChangeListeners.add(listener); }
@@ -129,7 +138,7 @@ public class DataManager {
     public void addHoaDon(HoaDon hoaDon) { if (hoaDon != null && !hoaDonList.contains(hoaDon)) hoaDonList.add(hoaDon); }
     public void addKhachHang(KhachHang khachHang) { if (khachHang != null && !khachHangList.contains(khachHang)) khachHangList.add(khachHang); }
     public void addDichVu(DichVu dichVu) { if (dichVu != null && !dichVuList.contains(dichVu)) dichVuList.add(dichVu); }
-    public void addKhuyenMai(ChuongTrinhKhuyenMai khuyenMai) { if (khuyenMai != null && !khuyenMaiList.contains(khuyenMai)) khuyenMaiList.add(khuyenMai); }
+    public void addKhuyenMai(KhuyenMai khuyenMai) { if (khuyenMai != null && !khuyenMaiList.contains(khuyenMai)) khuyenMaiList.add(khuyenMai); }
     public void addNhanVien(NhanVien nhanVien) { if (nhanVien != null && !nhanVienList.contains(nhanVien)) nhanVienList.add(nhanVien); }
 
     private void notifyListeners(List<Runnable> listeners) {

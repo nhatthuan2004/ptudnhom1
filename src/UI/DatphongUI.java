@@ -1,19 +1,18 @@
 package UI;
 
+import dao.KhachHang_Dao;
+import dao.Phong_Dao;
 import javafx.geometry.Pos;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.stage.Stage;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.beans.property.SimpleStringProperty;
-import model.Phong;
 import model.HoaDon;
 import model.KhachHang;
+import model.Phong;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -24,12 +23,23 @@ public class DatphongUI {
     private ObservableList<Phong> phongTrongList;
     private ObservableList<Phong> phongDaChonList;
     private ObservableList<Phong> allPhongList;
+    private final Phong_Dao phongDao;
+    private final KhachHang_Dao khachHangDao;
 
-    private TextField tfHoTen, tfCCCD, tfDiaChi, tfSDT, tfQuocTich, tfGioiTinh;
+    private TextField tfHoTen, tfCCCD, tfDiaChi, tfSDT, tfQuocTich, tfEmail;
+    private ComboBox<String> cbGioiTinh;
+    private DatePicker dpNgaySinh;
 
     public DatphongUI() {
+        try {
+            phongDao = new Phong_Dao();
+            khachHangDao = new KhachHang_Dao();
+            allPhongList = FXCollections.observableArrayList(phongDao.getAllPhong());
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể kết nối tới cơ sở dữ liệu!", e);
+        }
         DataManager dataManager = DataManager.getInstance();
-        allPhongList = dataManager.getPhongList();
+        dataManager.setPhongList(allPhongList); // Đồng bộ với DataManager
         phongTrongList = FXCollections.observableArrayList();
         phongDaChonList = FXCollections.observableArrayList();
 
@@ -57,24 +67,47 @@ public class DatphongUI {
         BorderPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         BorderPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
-        VBox customerInfo = new VBox(35);
+        VBox customerInfo = new VBox(20);
         customerInfo.setPadding(new Insets(20));
         customerInfo.setAlignment(Pos.TOP_LEFT);
 
-        HBox hboxHoTen = createInputFieldWithIcon("Nhập Họ Tên", "/img/ten.png");
-        tfHoTen = (TextField) hboxHoTen.getChildren().get(1);
-        HBox hboxCCCD = createInputFieldWithIcon("Nhập CCCD/passport", "/img/cccd.png");
-        tfCCCD = (TextField) hboxCCCD.getChildren().get(1);
-        HBox hboxDiaChi = createInputFieldWithIcon("Nhập Địa Chỉ", "/img/diachi.png");
-        tfDiaChi = (TextField) hboxDiaChi.getChildren().get(1);
-        HBox hboxSDT = createInputFieldWithIcon("Nhập SĐT", "/img/sdt.png");
-        tfSDT = (TextField) hboxSDT.getChildren().get(1);
-        HBox hboxQuocTich = createInputFieldWithIcon("Nhập Quốc Tịch", "/img/quoctich.png");
-        tfQuocTich = (TextField) hboxQuocTich.getChildren().get(1);
-        HBox hboxGioiTinh = createInputFieldWithIcon("Nhập Giới Tính", "/img/gioitinh.png");
-        tfGioiTinh = (TextField) hboxGioiTinh.getChildren().get(1);
+        HBox hboxHoTen = createInputFieldWithoutIcon("Nhập Họ Tên");
+        tfHoTen = (TextField) hboxHoTen.getChildren().get(0);
 
-        customerInfo.getChildren().addAll(hboxHoTen, hboxCCCD, hboxDiaChi, hboxSDT, hboxQuocTich, hboxGioiTinh);
+        HBox hboxCCCD = createInputFieldWithoutIcon("Nhập CCCD/passport");
+        tfCCCD = (TextField) hboxCCCD.getChildren().get(0);
+
+        HBox hboxDiaChi = createInputFieldWithoutIcon("Nhập Địa Chỉ");
+        tfDiaChi = (TextField) hboxDiaChi.getChildren().get(0);
+
+        HBox hboxSDT = createInputFieldWithoutIcon("Nhập SĐT");
+        tfSDT = (TextField) hboxSDT.getChildren().get(0);
+
+        HBox hboxQuocTich = createInputFieldWithoutIcon("Nhập Quốc Tịch");
+        tfQuocTich = (TextField) hboxQuocTich.getChildren().get(0);
+
+        HBox hboxEmail = createInputFieldWithoutIcon("Nhập Email");
+        tfEmail = (TextField) hboxEmail.getChildren().get(0);
+
+        HBox hboxGioiTinh = new HBox(10);
+        hboxGioiTinh.setAlignment(Pos.CENTER_LEFT);
+        cbGioiTinh = new ComboBox<>(FXCollections.observableArrayList("Nam", "Nữ", "Khác"));
+        cbGioiTinh.setPromptText("Chọn Giới Tính");
+        cbGioiTinh.setPrefWidth(250);
+        hboxGioiTinh.getChildren().add(cbGioiTinh);
+
+        HBox hboxNgaySinh = new HBox(10);
+        hboxNgaySinh.setAlignment(Pos.CENTER_LEFT);
+        dpNgaySinh = new DatePicker();
+        dpNgaySinh.setPromptText("Chọn Ngày Sinh");
+        dpNgaySinh.setPrefWidth(250);
+        hboxNgaySinh.getChildren().add(dpNgaySinh);
+
+        customerInfo.getChildren().addAll(hboxHoTen, hboxCCCD, hboxDiaChi, hboxSDT, hboxQuocTich, hboxEmail, hboxGioiTinh, hboxNgaySinh);
+
+        // Thêm listener để kiểm tra khách hàng tồn tại
+        tfSDT.textProperty().addListener((obs, oldValue, newValue) -> checkExistingCustomerBySDT(newValue));
+        tfCCCD.textProperty().addListener((obs, oldValue, newValue) -> checkExistingCustomerByCCCD(newValue));
 
         VBox roomInfo = new VBox(15);
         roomInfo.setPadding(new Insets(25));
@@ -86,24 +119,26 @@ public class DatphongUI {
         dateTimeLayout.setPadding(new Insets(0, 0, 15, 0));
 
         Label labelNgayDen = new Label("Ngày đến");
-        DatePicker dpNgayDen = new DatePicker();
+        DatePicker dpNgayDen = new DatePicker(LocalDate.now());
 
         Label labelNgayDi = new Label("Ngày đi");
-        DatePicker dpNgayDi = new DatePicker();
+        DatePicker dpNgayDi = new DatePicker(LocalDate.now().plusDays(1));
 
         Label labelGioDen = new Label("Giờ đến");
         ComboBox<String> cbGioDen = new ComboBox<>();
         cbGioDen.getItems().addAll("08:00 AM", "12:00 PM", "02:00 PM", "06:00 PM");
+        cbGioDen.setValue("12:00 PM");
 
         Label labelGioDi = new Label("Giờ đi");
         ComboBox<String> cbGioDi = new ComboBox<>();
         cbGioDi.getItems().addAll("08:00 AM", "12:00 PM", "02:00 PM", "06:00 PM");
+        cbGioDi.setValue("12:00 PM");
 
         dateTimeLayout.add(labelNgayDen, 0, 0);
         dateTimeLayout.add(dpNgayDen, 1, 0);
         dateTimeLayout.add(labelGioDen, 2, 0);
         dateTimeLayout.add(cbGioDen, 3, 0);
-        
+
         dateTimeLayout.add(labelNgayDi, 0, 1);
         dateTimeLayout.add(dpNgayDi, 1, 1);
         dateTimeLayout.add(labelGioDi, 2, 1);
@@ -230,9 +265,11 @@ public class DatphongUI {
         roomInfo.getChildren().addAll(dateTimeLayout, tableLayout);
 
         Button btnLuu = new Button("Lưu");
+        btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
         btnLuu.setOnAction(e -> handleSave(dpNgayDen, dpNgayDi, cbGioDen, cbGioDi));
 
         Button btnHuy = new Button("Hủy");
+        btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
         btnHuy.setOnAction(e -> handleCancel());
 
         HBox buttonLayout = new HBox(20, btnLuu, btnHuy);
@@ -254,26 +291,50 @@ public class DatphongUI {
         return root;
     }
 
-    private HBox createInputFieldWithIcon(String labelText, String iconPath) {
+    private HBox createInputFieldWithoutIcon(String labelText) {
         TextField textField = new TextField();
         textField.setPromptText(labelText);
-
-        ImageView icon;
-        try {
-            icon = new ImageView(new Image(getClass().getResource(iconPath).toExternalForm()));
-        } catch (Exception e) {
-            icon = new ImageView(new Image("https://via.placeholder.com/20"));
-            System.out.println("Warning: Icon not found at " + iconPath);
-        }
-        icon.setFitHeight(20);
-        icon.setFitWidth(20);
-
-        HBox hbox = new HBox(25, icon, textField);
-        hbox.setAlignment(Pos.CENTER_LEFT);
-
         textField.setPrefWidth(250);
-
+        HBox hbox = new HBox(10, textField);
+        hbox.setAlignment(Pos.CENTER_LEFT);
         return hbox;
+    }
+
+    private void checkExistingCustomerBySDT(String sdt) {
+        if (sdt.matches("0\\d{9}")) {
+            try {
+                KhachHang existingCustomer = khachHangDao.getKhachHangBySDT(sdt);
+                if (existingCustomer != null) {
+                    fillCustomerInfo(existingCustomer);
+                }
+            } catch (SQLException e) {
+                showAlert("Lỗi", "Không thể kiểm tra khách hàng theo SĐT: " + e.getMessage());
+            }
+        }
+    }
+
+    private void checkExistingCustomerByCCCD(String cccd) {
+        if (cccd.matches("\\d{12}")) {
+            try {
+                KhachHang existingCustomer = khachHangDao.getKhachHangByCCCD(cccd);
+                if (existingCustomer != null) {
+                    fillCustomerInfo(existingCustomer);
+                }
+            } catch (SQLException e) {
+                showAlert("Lỗi", "Không thể kiểm tra khách hàng theo CCCD: " + e.getMessage());
+            }
+        }
+    }
+
+    private void fillCustomerInfo(KhachHang customer) {
+        tfHoTen.setText(customer.getTenKhachHang());
+        tfCCCD.setText(customer.getCccd());
+        tfDiaChi.setText(customer.getDiaChi());
+        tfSDT.setText(customer.getSoDienThoai());
+        tfQuocTich.setText(customer.getQuocTich());
+        tfEmail.setText(customer.getEmail());
+        cbGioiTinh.setValue(customer.getGioiTinh());
+        dpNgaySinh.setValue(customer.getNgaySinh());
     }
 
     private void updatePhongTrongList() {
@@ -294,7 +355,9 @@ public class DatphongUI {
         tfDiaChi.clear();
         tfSDT.clear();
         tfQuocTich.clear();
-        tfGioiTinh.clear();
+        tfEmail.clear();
+        cbGioiTinh.setValue(null);
+        dpNgaySinh.setValue(null);
 
         phongDaChonList.clear();
         updatePhongTrongList();
@@ -305,44 +368,42 @@ public class DatphongUI {
     private void handleSave(DatePicker dpNgayDen, DatePicker dpNgayDi, ComboBox<String> cbGioDen, ComboBox<String> cbGioDi) {
         String sdt = tfSDT.getText();
         String cccd = tfCCCD.getText();
+        String email = tfEmail.getText();
         LocalDate ngayDen = dpNgayDen.getValue();
         LocalDate ngayDi = dpNgayDi.getValue();
+        LocalDate ngaySinh = dpNgaySinh.getValue();
+        String gioiTinh = cbGioiTinh.getValue();
 
+        // Kiểm tra dữ liệu đầu vào
         if (!sdt.matches("0\\d{9}")) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Lỗi nhập liệu");
-            alert.setHeaderText("SĐT không hợp lệ");
-            alert.setContentText("SĐT phải có đúng 10 số và bắt đầu bằng 0.");
-            alert.showAndWait();
+            showAlert("Lỗi", "SĐT phải có đúng 10 số và bắt đầu bằng 0.");
             return;
         }
 
         if (!cccd.matches("\\d{12}")) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Lỗi nhập liệu");
-            alert.setHeaderText("CCCD không hợp lệ");
-            alert.setContentText("CCCD phải có đúng 12 số.");
-            alert.showAndWait();
+            showAlert("Lỗi", "CCCD phải có đúng 12 số.");
             return;
         }
 
-        if (tfHoTen.getText().isEmpty() || tfDiaChi.getText().isEmpty() || tfQuocTich.getText().isEmpty() || 
-            tfGioiTinh.getText().isEmpty() || ngayDen == null || ngayDi == null || 
-            cbGioDen.getValue() == null || cbGioDi.getValue() == null || phongDaChonList.isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Lỗi nhập liệu");
-            alert.setHeaderText("Thông tin chưa đầy đủ");
-            alert.setContentText("Vui lòng nhập đầy đủ thông tin và chọn ít nhất một phòng.");
-            alert.showAndWait();
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            showAlert("Lỗi", "Email không hợp lệ.");
+            return;
+        }
+
+        if (tfHoTen.getText().isEmpty() || tfDiaChi.getText().isEmpty() || tfQuocTich.getText().isEmpty() ||
+                gioiTinh == null || ngaySinh == null || ngayDen == null || ngayDi == null ||
+                cbGioDen.getValue() == null || cbGioDi.getValue() == null || phongDaChonList.isEmpty()) {
+            showAlert("Lỗi", "Vui lòng nhập đầy đủ thông tin và chọn ít nhất một phòng.");
             return;
         }
 
         if (!ngayDi.isAfter(ngayDen)) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Lỗi nhập liệu");
-            alert.setHeaderText("Ngày đi không hợp lệ");
-            alert.setContentText("Ngày đi phải lớn hơn ngày đến.");
-            alert.showAndWait();
+            showAlert("Lỗi", "Ngày đi phải lớn hơn ngày đến.");
+            return;
+        }
+
+        if (ngaySinh.isAfter(LocalDate.now().minusYears(18))) {
+            showAlert("Lỗi", "Khách hàng phải trên 18 tuổi.");
             return;
         }
 
@@ -352,81 +413,107 @@ public class DatphongUI {
 
         long soNgayO = ChronoUnit.DAYS.between(ngayDen, ngayDi);
 
+        // Kiểm tra khách hàng tồn tại
+        KhachHang khachHang;
+        try {
+            KhachHang existingCustomer = khachHangDao.getKhachHangBySDT(sdt);
+            if (existingCustomer != null) {
+                khachHang = existingCustomer;
+            } else {
+            	khachHang = new KhachHang(
+            		    "KH" + String.format("%03d", khachHangList.size() + 1),
+            		    tfHoTen.getText(),              
+            		    tfSDT.getText(),               
+            		    tfEmail.getText(),           
+            		    tfDiaChi.getText(),             // diaChi
+            		    tfCCCD.getText(),               // cccd
+            		    dpNgaySinh.getValue(),          // ngaySinh
+            		    tfQuocTich.getText(),           // quocTich
+            		    cbGioiTinh.getValue()           // gioiTinh
+            		);
+
+                khachHangDao.themKhachHang(khachHang); // Thêm mới nếu chưa tồn tại
+                dataManager.addKhachHang(khachHang); // Đồng bộ với DataManager
+            }
+        } catch (SQLException e) {
+            showAlert("Lỗi", "Không thể lưu hoặc kiểm tra thông tin khách hàng: " + e.getMessage());
+            return;
+        }
+
+        // Đặt phòng và cập nhật trạng thái
         for (Phong phong : phongDaChonList) {
             int index = allPhongList.indexOf(phong);
             if (index != -1) {
-                phong.setTrangThai("Đã đặt");
-                phong.setMoTa("Phòng đã được đặt bởi " + tfHoTen.getText());
-                phong.setTenKhachHang(tfHoTen.getText());
-                phong.setSoDienThoai(tfSDT.getText());
+                Phong updatedPhong = new Phong(
+                        phong.getMaPhong(),
+                        phong.getLoaiPhong(),
+                        phong.getGiaPhong(),
+                        "Đã đặt",
+                        phong.getDonDep(),
+                        phong.getViTri(),
+                        phong.getSoNguoiToiDa(),
+                        phong.getMoTa()
+                );
 
-                double tienPhong = phong.getGiaPhong() * soNgayO;
+                try {
+                    phongDao.suaPhong(updatedPhong); // Cập nhật trạng thái trong DB
+                    allPhongList.set(index, updatedPhong); // Cập nhật trong danh sách
+                    dataManager.getPhongList().set(dataManager.getPhongList().indexOf(phong), updatedPhong); // Đồng bộ với DataManager
+                } catch (SQLException e) {
+                    showAlert("Lỗi", "Không thể cập nhật trạng thái phòng " + phong.getMaPhong() + ": " + e.getMessage());
+                    return;
+                }
 
-                HoaDon hoaDon = new HoaDon();
-                hoaDon.setMaHoaDon("HD" + String.format("%03d", hoaDonList.size() + 1));
-                hoaDon.setTenKhachHang(tfHoTen.getText());
-                hoaDon.setPhong(phong.getMaPhong());
-                hoaDon.setTienPhong(tienPhong);
-                hoaDon.setTienDichVu(0.0);
-                hoaDon.setTrangThai("Chưa thanh toán");
-                hoaDon.setMaPhong(phong.getMaPhong());
-                hoaDon.setNgayLap(LocalDateTime.now());
-                hoaDon.setHinhThucThanhToan("Tiền mặt");
-                hoaDon.setMaKhachHang("KH" + String.format("%03d", khachHangList.size() + 1));
-                hoaDon.setMaNhanVien("NV001");
-                hoaDon.setMoTa("Phòng " + phong.getMaPhong() + " từ " + ngayDen + " đến " + ngayDi);
+                double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
 
-                hoaDonList.add(hoaDon);
-
-                allPhongList.set(index, phong);
+                HoaDon hoaDon = new HoaDon(
+                        "HD" + String.format("%03d", hoaDonList.size() + 1),
+                        tfHoTen.getText(),
+                        phong.getMaPhong(),
+                        tienPhong,
+                        0.0,
+                        "Chưa thanh toán",
+                        phong.getMaPhong(),
+                        LocalDateTime.now(),
+                        "Phòng " + phong.getMaPhong() + " từ " + ngayDen + " " + cbGioDen.getValue() + " đến " + ngayDi + " " + cbGioDi.getValue(),
+                        "Tiền mặt",
+                        khachHang.getMaKhachHang(),
+                        "NV001"
+                );
+                dataManager.addHoaDon(hoaDon); // Đồng bộ với DataManager
             }
         }
 
-        KhachHang khachHang = new KhachHang(cccd, cccd, cccd, cccd, cccd, cccd, ngayDi, cccd, cccd);
-        khachHang.setMaKhachHang("KH" + String.format("%03d", khachHangList.size() + 1));
-        khachHang.setTenKhachHang(tfHoTen.getText());
-        khachHang.setCccd(tfCCCD.getText());
-        khachHang.setSoDienThoai(tfSDT.getText());
-        khachHang.setDiaChi(tfDiaChi.getText());
-        khachHang.setEmail("");
-        khachHang.setNgaySinh(LocalDate.now());
-        khachHangList.add(khachHang);
-
+        // Hiển thị thông báo
         StringBuilder thongTinDatPhong = new StringBuilder();
         thongTinDatPhong.append("Thông tin đặt phòng:\n");
         thongTinDatPhong.append("Họ tên: ").append(tfHoTen.getText()).append("\n");
         thongTinDatPhong.append("CCCD: ").append(tfCCCD.getText()).append("\n");
         thongTinDatPhong.append("Địa chỉ: ").append(tfDiaChi.getText()).append("\n");
         thongTinDatPhong.append("SĐT: ").append(tfSDT.getText()).append("\n");
+        thongTinDatPhong.append("Email: ").append(tfEmail.getText()).append("\n");
         thongTinDatPhong.append("Quốc tịch: ").append(tfQuocTich.getText()).append("\n");
-        thongTinDatPhong.append("Giới tính: ").append(tfGioiTinh.getText()).append("\n");
+        thongTinDatPhong.append("Giới tính: ").append(gioiTinh).append("\n");
+        thongTinDatPhong.append("Ngày sinh: ").append(ngaySinh).append("\n");
         thongTinDatPhong.append("Ngày đến: ").append(ngayDen).append(" ").append(cbGioDen.getValue()).append("\n");
         thongTinDatPhong.append("Ngày đi: ").append(ngayDi).append(" ").append(cbGioDi.getValue()).append("\n");
         thongTinDatPhong.append("Phòng đã đặt:\n");
-
         for (Phong phong : phongDaChonList) {
             thongTinDatPhong.append("- ").append(phong.getMaPhong())
-                            .append(" (Số lượng người: ").append(phong.getSoNguoiToiDa()).append(")\n");
+                    .append(" (Số lượng người: ").append(phong.getSoNguoiToiDa()).append(")\n");
         }
 
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Đặt phòng thành công");
-        alert.setHeaderText("Thông tin đặt phòng đã được lưu!");
-        alert.setContentText(thongTinDatPhong.toString());
-        alert.showAndWait();
+        showAlert("Thành công", thongTinDatPhong.toString());
 
-        updatePhongTrongList();
-        tablePhongTrong.refresh();
-        tablePhongDaChon.refresh();
-
+        // Reset giao diện sau khi lưu
         handleCancel();
     }
 
-    public static void main(String[] args) {
-        Stage stage = new Stage();
-        DatphongUI datphongUI = new DatphongUI();
-        stage.setScene(new Scene(datphongUI.getUI(), 1000, 600));
-        stage.setTitle("Giao diện Đặt phòng");
-        stage.show();
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(title.equals("Lỗi") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }
