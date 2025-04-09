@@ -80,11 +80,6 @@ public class HomeUI extends Application {
             File videoFile = new File(videoPath);
             if (!videoFile.exists()) {
                 System.err.println("Không tìm thấy video tại: " + videoPath);
-                Alert alert = new Alert(Alert.AlertType.WARNING);
-                alert.setTitle("Cảnh báo");
-                alert.setHeaderText("Không tải được video nền");
-                alert.setContentText("Video tại " + videoPath + " không tồn tại. Sử dụng giao diện mặc định.");
-                alert.showAndWait();
                 return new MediaView();
             }
 
@@ -96,11 +91,6 @@ public class HomeUI extends Application {
             mediaPlayer.setOnError(() -> {
                 String errorMessage = mediaPlayer.getError() != null ? mediaPlayer.getError().getMessage() : "Lỗi không xác định";
                 System.err.println("Lỗi MediaPlayer: " + errorMessage);
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Lỗi phát video");
-                alert.setHeaderText("Không thể phát video");
-                alert.setContentText("Chi tiết lỗi: " + errorMessage);
-                alert.showAndWait();
             });
 
             mediaPlayer.setOnReady(() -> {
@@ -137,10 +127,10 @@ public class HomeUI extends Application {
 
         addExpandableMenu(menuItems, "Khách hàng", "Quản lý khách hàng", "Tìm kiếm khách hàng");
         addExpandableMenu(menuItems, "Phòng", "Đặt phòng", "Quản lý phòng", "Quản lý đặt phòng", "Tìm kiếm phòng");
-        addExpandableMenu(menuItems, "Dịch vụ", "Quản lý dịch vụ", "Tìm kiếm dịch vụ");
-        addExpandableMenu(menuItems, "Hóa đơn", "Quản lý hóa đơn", "Quản lý doanh thu", "Tìm kiếm hóa đơn");
-        addExpandableMenu(menuItems, "CT Khuyến mãi", "Quản lý khuyến mãi", "Tìm kiếm khuyến mãi");
-        addExpandableMenu(menuItems, "Nhân viên", "Quản lý nhân viên", "Tìm kiếm nhân viên");
+        addExpandableMenu(menuItems, "Dịch vụ", isQuanLy ? new String[]{"Quản lý dịch vụ", "Tìm kiếm dịch vụ"} : new String[]{"Tìm kiếm dịch vụ"});
+        addExpandableMenu(menuItems, "Hóa đơn", isQuanLy ? new String[]{"Quản lý hóa đơn", "Quản lý doanh thu", "Tìm kiếm hóa đơn"} : new String[]{"Tìm kiếm hóa đơn"});
+        addExpandableMenu(menuItems, "CT Khuyến mãi", isQuanLy ? new String[]{"Quản lý khuyến mãi", "Tìm kiếm khuyến mãi"} : new String[]{"Tìm kiếm khuyến mãi"});
+        addExpandableMenu(menuItems, "Nhân viên", isQuanLy ? new String[]{"Quản lý nhân viên", "Tìm kiếm nhân viên"} : new String[]{"Tìm kiếm nhân viên"});
         addExpandableMenu(menuItems, "Đăng xuất");
         addExpandableMenu(menuItems, "Thoát");
 
@@ -183,11 +173,6 @@ public class HomeUI extends Application {
         boolean isQuanLy = currentUser != null && "Quản lý".equals(currentUser.getChucVu());
 
         for (String item : items) {
-            if (!isQuanLy && (item.equals("Quản lý doanh thu") || item.equals("Quản lý dịch vụ") ||
-                              item.equals("Quản lý khuyến mãi"))) {
-                continue;
-            }
-
             Button subBtn = createStyledButton(item);
             subBtn.setStyle(createBaseStyle() + "-fx-font-size: 14px; -fx-padding: 5 15;");
 
@@ -199,7 +184,6 @@ public class HomeUI extends Application {
                     subBtn.setStyle(createSelectedStyle());
                     selectedButton = subBtn;
 
-                    // Kiểm tra nếu người dùng chưa đăng nhập
                     if (currentUser == null) {
                         showPermissionDeniedAlert("Vui lòng đăng nhập để sử dụng chức năng này.");
                         performLogout();
@@ -240,12 +224,8 @@ public class HomeUI extends Application {
                             slidePane.getChildren().setAll(tkDvUI.getUI());
                             break;
                         case "Quản lý nhân viên":
-                            if (isQuanLy) {
-                                QLNV qlNvUI = new QLNV();
-                                slidePane.getChildren().setAll(qlNvUI.getUI());
-                            } else {
-                                showPermissionDeniedAlert("Chỉ Quản lý mới có thể truy cập Quản lý nhân viên.");
-                            }
+                            QLNV qlNvUI = new QLNV();
+                            slidePane.getChildren().setAll(qlNvUI.getUI());
                             break;
                         case "Tìm kiếm nhân viên":
                             TimKiemNV tkNvUI = new TimKiemNV();
