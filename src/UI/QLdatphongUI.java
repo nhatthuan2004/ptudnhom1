@@ -22,7 +22,7 @@ public class QLdatphongUI {
     private final ObservableList<HoaDon> hoaDonList;
     private final ObservableList<KhachHang> khachHangList;
     private final ObservableList<DichVu> dichVuList;
-    private final ObservableList<ChuongTrinhKhuyenMai> khuyenMaiList;
+    private final ObservableList<KhuyenMai> khuyenMaiList;
     private FlowPane bookingFlowPane;
     private StackPane contentPane;
     private StackPane mainPane;
@@ -289,7 +289,7 @@ public class QLdatphongUI {
             hoaDonList.add(newHoaDon);
 
             int index = phongList.indexOf(phong);
-            Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Đã đặt", phong.getViTri(), phong.getSoNguoiToiDa(), phong.getMoTa());
+            Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Đã đặt", phong.getViTri(), tenKhachHang, phong.getSoNguoiToiDa(), phong.getMoTa());
             phongList.set(index, updatedPhong);
 
             updateBookingDisplayDirectly();
@@ -437,7 +437,7 @@ public class QLdatphongUI {
                     Phong phong = phongList.stream().filter(p -> p.getMaPhong().equals(hoaDon.getMaPhong())).findFirst().orElse(null);
                     if (phong != null) {
                         int phongIndex = phongList.indexOf(phong);
-                        Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Trống", phong.getViTri(), phong.getSoNguoiToiDa(), phong.getMoTa());
+                        Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Trống", phong.getViTri(), moTa, phong.getSoNguoiToiDa(), phong.getMoTa());
                         phongList.set(phongIndex, updatedPhong);
                     }
                     hoaDonList.remove(hoaDon);
@@ -472,18 +472,18 @@ public class QLdatphongUI {
 
         VBox form = createCenteredForm("Thanh toán hóa đơn " + hoaDon.getMaHoaDon());
 
-        ComboBox<ChuongTrinhKhuyenMai> promotionCombo = new ComboBox<>(khuyenMaiList.filtered(km -> km.isTrangThai()));
+        ComboBox<KhuyenMai> promotionCombo = new ComboBox<>(khuyenMaiList.filtered(km -> km.isTrangThai()));
         promotionCombo.setPromptText("Chọn mã khuyến mãi (nếu có)");
         promotionCombo.setPrefWidth(250);
         promotionCombo.setStyle("-fx-font-size: 16px;");
-        promotionCombo.setConverter(new javafx.util.StringConverter<ChuongTrinhKhuyenMai>() {
+        promotionCombo.setConverter(new javafx.util.StringConverter<KhuyenMai>() {
             @Override
-            public String toString(ChuongTrinhKhuyenMai km) {
+            public String toString(KhuyenMai km) {
                 return km != null ? km.getMaChuongTrinhKhuyenMai() + " - " + km.getTenChuongTrinhKhuyenMai() : "";
             }
 
             @Override
-            public ChuongTrinhKhuyenMai fromString(String string) {
+            public KhuyenMai fromString(String string) {
                 return null;
             }
         });
@@ -495,7 +495,7 @@ public class QLdatphongUI {
         String[] finalMoTa = { moTaBanDau };
 
         promotionCombo.setOnAction(e -> {
-            ChuongTrinhKhuyenMai selected = promotionCombo.getValue();
+        	KhuyenMai selected = promotionCombo.getValue();
             double discount = 0;
             if (selected != null) {
                 discount = tongTien * (selected.getChietKhau() / 100);
@@ -582,7 +582,7 @@ public class QLdatphongUI {
         if (phong != null) {
             int phongIndex = phongList.indexOf(phong);
             Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Trống",
-                    phong.getViTri(), phong.getSoNguoiToiDa(), "Chưa dọn dẹp");
+                    phong.getViTri(), hinhThucThanhToan, phong.getSoNguoiToiDa(), "Chưa dọn dẹp");
             phongList.set(phongIndex, updatedPhong);
         }
 

@@ -41,7 +41,6 @@ public class QLKH {
         mainPane.setStyle("-fx-background-color: #f0f0f0;");
         mainPane.setPrefSize(1120, 800);
 
-        // UserInfoBox
         HBox userInfoBox;
         try {
             userInfoBox = UserInfoBox.createUserInfoBox();
@@ -54,7 +53,6 @@ public class QLKH {
         StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
-        // Thanh tìm kiếm
         TextField searchField = new TextField();
         searchField.setPromptText("Tìm kiếm khách hàng...");
         searchField.setPrefWidth(200);
@@ -74,7 +72,6 @@ public class QLKH {
             }
         });
 
-        // Nút thêm khách hàng
         Button addButton = new Button("+ Thêm khách hàng");
         addButton.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; " +
                 "-fx-padding: 6 12; -fx-background-radius: 6;");
@@ -88,7 +85,6 @@ public class QLKH {
         topHeader.setSpacing(10);
         StackPane.setAlignment(topHeader, Pos.TOP_LEFT);
 
-        // Bảng khách hàng
         table = new TableView<>(danhSachKhachHang);
         table.setPrefWidth(1120);
         table.setPrefHeight(740);
@@ -230,7 +226,6 @@ public class QLKH {
         VBox form = createCenteredForm(
                 isEditMode ? "Sửa thông tin khách hàng " + khachHang.getMaKhachHang() : "Thêm khách hàng mới");
 
-        // Tự động sinh mã khách hàng từ DAO
         String maKhachHangValue;
         try {
             maKhachHangValue = isEditMode ? khachHang.getMaKhachHang() : dao.getNextMaKhachHang();

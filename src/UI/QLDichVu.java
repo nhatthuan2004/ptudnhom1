@@ -1,5 +1,7 @@
 package UI;
 
+import dao.DichVu_Dao;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -13,13 +15,23 @@ public class QLDichVu {
     private TableView<DichVu> table;
     private StackPane contentPane;
     private StackPane mainPane;
-    private final DataManager dataManager;
+    private final DichVu_Dao dichVuDao;
 
     public QLDichVu() {
-        dataManager = DataManager.getInstance();
-        this.danhSachDichVu = dataManager.getDichVuList();
+        this.dichVuDao = new DichVu_Dao();
+        this.danhSachDichVu = FXCollections.observableArrayList();
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
+        loadDataFromDatabase();
+    }
+
+    private void loadDataFromDatabase() {
+        try {
+            danhSachDichVu.clear();
+            danhSachDichVu.addAll(dichVuDao.getAllDichVu());
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải dữ liệu dịch vụ: " + e.getMessage());
+        }
     }
 
     private StackPane createMainPane() {
@@ -27,6 +39,7 @@ public class QLDichVu {
         mainPane.setStyle("-fx-background-color: #f0f0f0;");
         mainPane.setPrefSize(1120, 800);
 
+        // UserInfoBox
         HBox userInfoBox;
         try {
             userInfoBox = UserInfoBox.createUserInfoBox();
@@ -39,6 +52,27 @@ public class QLDichVu {
         StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
+        // Thanh tìm kiếm
+        TextField searchField = new TextField();
+        searchField.setPromptText("Tìm kiếm dịch vụ...");
+        searchField.setPrefWidth(200);
+        Button searchButton = new Button("Tìm kiếm");
+        searchButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
+        searchButton.setOnAction(e -> {
+            String keyword = searchField.getText().trim();
+            try {
+                if (keyword.isEmpty()) {
+                    loadDataFromDatabase();
+                } else {
+                    danhSachDichVu.clear();
+                    danhSachDichVu.addAll(dichVuDao.timKiemDichVu(keyword));
+                }
+            } catch (Exception ex) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tìm kiếm: " + ex.getMessage());
+            }
+        });
+
+        // Nút thêm dịch vụ
         Button addButton = new Button("+ Thêm dịch vụ");
         addButton.setStyle(
             "-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; " +
@@ -46,14 +80,15 @@ public class QLDichVu {
         );
         addButton.setOnAction(e -> showDichVuForm(null));
 
-        HBox addBox = new HBox(addButton);
-        addBox.setAlignment(Pos.CENTER_LEFT);
-        addBox.setPadding(new Insets(0, 20, 10, 20));
+        HBox topControls = new HBox(10, addButton, searchField, searchButton);
+        topControls.setAlignment(Pos.CENTER_LEFT);
+        topControls.setPadding(new Insets(0, 20, 10, 20));
 
-        VBox topHeader = new VBox(addBox);
+        VBox topHeader = new VBox(topControls);
         topHeader.setSpacing(10);
         StackPane.setAlignment(topHeader, Pos.TOP_LEFT);
 
+        // Bảng dịch vụ
         table = new TableView<>(danhSachDichVu);
         table.setPrefWidth(1120);
         table.setPrefHeight(740);
@@ -117,7 +152,17 @@ public class QLDichVu {
                         confirm.setContentText("Dịch vụ: " + getTableRow().getItem().getTenDichVu());
                         confirm.showAndWait().ifPresent(response -> {
                             if (response == ButtonType.OK) {
-                                danhSachDichVu.remove(getTableRow().getItem());
+                                DichVu dv = getTableRow().getItem();
+                                try {
+                                    if (dichVuDao.xoaDichVu(dv.getMaDichVu())) {
+                                        danhSachDichVu.remove(dv);
+                                        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã xóa dịch vụ thành công!");
+                                    } else {
+                                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể xóa dịch vụ!");
+                                    }
+                                } catch (Exception ex) {
+                                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi khi xóa: " + ex.getMessage());
+                                }
                             }
                         });
                     });
@@ -168,9 +213,16 @@ public class QLDichVu {
         boolean isEditMode = dichVu != null;
         VBox form = createCenteredForm(isEditMode ? "Sửa dịch vụ " + dichVu.getMaDichVu() : "Thêm dịch vụ mới");
 
-        TextField tfMaDichVu = new TextField(isEditMode ? dichVu.getMaDichVu() : "");
-        tfMaDichVu.setPromptText("Mã dịch vụ...");
-        tfMaDichVu.setDisable(isEditMode);
+        // Tự động sinh mã dịch vụ từ DAO
+        String maDichVuValue;
+        try {
+            maDichVuValue = isEditMode ? dichVu.getMaDichVu() : dichVuDao.getNextMaDichVu();
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể sinh mã dịch vụ: " + e.getMessage());
+            return;
+        }
+        Label lblMaDichVu = new Label(maDichVuValue);
+        lblMaDichVu.setStyle("-fx-font-size: 14px;");
 
         TextField tfTenDichVu = new TextField(isEditMode ? dichVu.getTenDichVu() : "");
         tfTenDichVu.setPromptText("Tên dịch vụ...");
@@ -190,7 +242,7 @@ public class QLDichVu {
         grid.setVgap(10);
         grid.setAlignment(Pos.CENTER);
 
-        grid.add(new Label("Mã Dịch Vụ:"), 0, 0); grid.add(tfMaDichVu, 1, 0);
+        grid.add(new Label("Mã Dịch Vụ:"), 0, 0); grid.add(lblMaDichVu, 1, 0);
         grid.add(new Label("Tên Dịch Vụ:"), 0, 1); grid.add(tfTenDichVu, 1, 1);
         grid.add(new Label("Mô Tả:"), 0, 2); grid.add(tfMoTa, 1, 2);
         grid.add(new Label("Giá:"), 0, 3); grid.add(tfGia, 1, 3);
@@ -199,14 +251,15 @@ public class QLDichVu {
         Button btnLuu = new Button("Lưu");
         btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
         btnLuu.setOnAction(e -> {
-            String maDichVu = tfMaDichVu.getText();
+            String maDichVu = maDichVuValue;
             String tenDichVu = tfTenDichVu.getText();
             String moTa = tfMoTa.getText();
             String giaText = tfGia.getText();
             String trangThai = cbTrangThai.getValue();
 
-            if (maDichVu.isEmpty() || tenDichVu.isEmpty() || giaText.isEmpty()) {
-                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
+            // Validation
+            if (tenDichVu.isEmpty() || giaText.isEmpty()) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng điền đầy đủ thông tin (trừ mô tả)!");
                 return;
             }
 
@@ -214,29 +267,40 @@ public class QLDichVu {
             try {
                 gia = Double.parseDouble(giaText);
                 if (gia < 0) {
-                    showAlert("Lỗi", "Giá phải là số không âm!");
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá phải là số không âm!");
                     return;
                 }
             } catch (NumberFormatException ex) {
-                showAlert("Lỗi", "Giá phải là số hợp lệ!");
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá phải là số hợp lệ!");
                 return;
             }
 
-            DichVu newDichVu = new DichVu(maDichVu, tenDichVu, gia, moTa, trangThai);
+            DichVu newDichVu = new DichVu(maDichVu, tenDichVu, moTa, gia, trangThai);
 
-            if (!isEditMode) {
-                if (danhSachDichVu.stream().anyMatch(dv -> dv.getMaDichVu().equals(maDichVu))) {
-                    showAlert("Lỗi", "Mã dịch vụ " + maDichVu + " đã tồn tại!");
-                    return;
+            try {
+                if (!isEditMode) {
+                    if (dichVuDao.themDichVu(newDichVu)) {
+                        danhSachDichVu.add(newDichVu);
+                        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã thêm dịch vụ mới!");
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể thêm dịch vụ!");
+                        return;
+                    }
+                } else {
+                    if (dichVuDao.suaDichVu(newDichVu)) {
+                        int index = danhSachDichVu.indexOf(dichVu);
+                        danhSachDichVu.set(index, newDichVu);
+                        table.refresh();
+                        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã cập nhật thông tin dịch vụ!");
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể cập nhật dịch vụ!");
+                        return;
+                    }
                 }
-                dataManager.addDichVu(newDichVu);
-            } else {
-                int index = danhSachDichVu.indexOf(dichVu);
-                danhSachDichVu.set(index, newDichVu);
-                table.refresh();
+                contentPane.getChildren().setAll(mainPane);
+            } catch (Exception ex) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Đã xảy ra lỗi khi lưu dữ liệu: " + ex.getMessage());
             }
-
-            contentPane.getChildren().setAll(mainPane);
         });
 
         Button btnHuy = new Button("Hủy");
@@ -250,8 +314,8 @@ public class QLDichVu {
         contentPane.getChildren().setAll(form);
     }
 
-    private void showAlert(String title, String message) {
-        Alert alert = new Alert(title.equals("Lỗi") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

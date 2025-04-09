@@ -1,5 +1,6 @@
 package UI;
 
+import dao.KhuyenMai_Dao;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -8,15 +9,21 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
-import model.ChuongTrinhKhuyenMai; // Sử dụng ChuongTrinhKhuyenMai từ DataManager
+import model.KhuyenMai; // Sử dụng KhuyenMai thay vì ChuongTrinhKhuyenMai để đồng bộ với DAO
+
+import java.sql.SQLException;
 
 public class TimkiemKM {
-    private final ObservableList<ChuongTrinhKhuyenMai> danhSachKhuyenMai;
-    private final DataManager dataManager;
+    private final ObservableList<KhuyenMai> danhSachKhuyenMai;
+    private final KhuyenMai_Dao khuyenMaiDao;
 
     public TimkiemKM() {
-        dataManager = DataManager.getInstance();
-        this.danhSachKhuyenMai = dataManager.getKhuyenMaiList();
+        try {
+            khuyenMaiDao = new KhuyenMai_Dao();
+            danhSachKhuyenMai = FXCollections.observableArrayList(khuyenMaiDao.getAllKhuyenMai());
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể kết nối tới cơ sở dữ liệu!", e);
+        }
     }
 
     public StackPane getUI() {
@@ -50,24 +57,24 @@ public class TimkiemKM {
         searchBox.setAlignment(Pos.CENTER);
 
         // ==== BẢNG KẾT QUẢ ==== 
-        TableView<ChuongTrinhKhuyenMai> table = new TableView<>();
+        TableView<KhuyenMai> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        TableColumn<ChuongTrinhKhuyenMai, String> colMaKhuyenMai = new TableColumn<>("Mã Khuyến Mãi");
+        TableColumn<KhuyenMai, String> colMaKhuyenMai = new TableColumn<>("Mã Khuyến Mãi");
         colMaKhuyenMai.setCellValueFactory(new PropertyValueFactory<>("maChuongTrinhKhuyenMai"));
 
-        TableColumn<ChuongTrinhKhuyenMai, String> colTenKhuyenMai = new TableColumn<>("Tên Khuyến Mãi");
+        TableColumn<KhuyenMai, String> colTenKhuyenMai = new TableColumn<>("Tên Khuyến Mãi");
         colTenKhuyenMai.setCellValueFactory(new PropertyValueFactory<>("tenChuongTrinhKhuyenMai"));
 
-        TableColumn<ChuongTrinhKhuyenMai, String> colMoTa = new TableColumn<>("Mô Tả");
+        TableColumn<KhuyenMai, String> colMoTa = new TableColumn<>("Mô Tả");
         colMoTa.setCellValueFactory(new PropertyValueFactory<>("moTaChuongTrinhKhuyenMai"));
 
-        TableColumn<ChuongTrinhKhuyenMai, Double> colGiamGia = new TableColumn<>("Giảm Giá");
+        TableColumn<KhuyenMai, Double> colGiamGia = new TableColumn<>("Giảm Giá");
         colGiamGia.setCellValueFactory(new PropertyValueFactory<>("chietKhau"));
 
-        TableColumn<ChuongTrinhKhuyenMai, Boolean> colTrangThai = new TableColumn<>("Trạng Thái");
+        TableColumn<KhuyenMai, Boolean> colTrangThai = new TableColumn<>("Trạng Thái");
         colTrangThai.setCellValueFactory(new PropertyValueFactory<>("trangThai"));
-        colTrangThai.setCellFactory(col -> new TableCell<ChuongTrinhKhuyenMai, Boolean>() {
+        colTrangThai.setCellFactory(col -> new TableCell<KhuyenMai, Boolean>() {
             @Override
             protected void updateItem(Boolean item, boolean empty) {
                 super.updateItem(item, empty);
@@ -92,17 +99,20 @@ public class TimkiemKM {
 
         // ==== HÀNH ĐỘNG TÌM KIẾM ==== 
         btnTimKiem.setOnAction(e -> {
-            String keyword = txtTimKiem.getText().trim().toLowerCase();
-            if (!keyword.isEmpty()) {
-                ObservableList<ChuongTrinhKhuyenMai> ketQua = FXCollections.observableArrayList();
-                for (ChuongTrinhKhuyenMai km : danhSachKhuyenMai) {
-                    if (km.getTenChuongTrinhKhuyenMai().toLowerCase().contains(keyword)) {
-                        ketQua.add(km);
-                    }
+            String keyword = txtTimKiem.getText().trim();
+            try {
+                if (!keyword.isEmpty()) {
+                    ObservableList<KhuyenMai> ketQua = FXCollections.observableArrayList(khuyenMaiDao.timKiemKhuyenMai(keyword));
+                    table.setItems(ketQua);
+                } else {
+                    table.setItems(FXCollections.observableArrayList(khuyenMaiDao.getAllKhuyenMai())); // Hiển thị lại toàn bộ danh sách
                 }
-                table.setItems(ketQua);
-            } else {
-                table.setItems(danhSachKhuyenMai); // Hiển thị lại toàn bộ danh sách nếu không nhập từ khóa
+            } catch (SQLException ex) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Lỗi");
+                alert.setHeaderText(null);
+                alert.setContentText("Không thể tìm kiếm khuyến mãi: " + ex.getMessage());
+                alert.showAndWait();
             }
         });
 
