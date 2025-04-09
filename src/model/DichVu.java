@@ -15,7 +15,7 @@ public class DichVu {
 
     public DichVu() {}
 
-    public DichVu(String maDichVu, String tenDichVu, double gia, String moTa, String trangThai) {
+    public DichVu(String maDichVu, String tenDichVu, String moTa,double gia, String trangThai) {
         setMaDichVu(maDichVu);
         setTenDichVu(tenDichVu);
         setGia(gia);
