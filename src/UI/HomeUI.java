@@ -131,6 +131,7 @@ public class HomeUI extends Application {
         addExpandableMenu(menuItems, "Hóa đơn", isQuanLy ? new String[]{"Quản lý hóa đơn", "Quản lý doanh thu", "Tìm kiếm hóa đơn"} : new String[]{"Tìm kiếm hóa đơn"});
         addExpandableMenu(menuItems, "CT Khuyến mãi", isQuanLy ? new String[]{"Quản lý khuyến mãi", "Tìm kiếm khuyến mãi"} : new String[]{"Tìm kiếm khuyến mãi"});
         addExpandableMenu(menuItems, "Nhân viên", isQuanLy ? new String[]{"Quản lý nhân viên", "Tìm kiếm nhân viên"} : new String[]{"Tìm kiếm nhân viên"});
+        addExpandableMenu(menuItems, "Tài khoản", isQuanLy ? new String[]{"Quản lý tài khoản"} : new String[]{});
         addExpandableMenu(menuItems, "Đăng xuất");
         addExpandableMenu(menuItems, "Thoát");
 
@@ -250,6 +251,10 @@ public class HomeUI extends Application {
                         case "Tìm kiếm khuyến mãi":
                             TimkiemKM tkKmUI = new TimkiemKM();
                             slidePane.getChildren().setAll(tkKmUI.getUI());
+                            break;
+                        case "Quản lý tài khoản":
+                            QLTaiKhoanUI qlTaiKhoanUI = new QLTaiKhoanUI();
+                            slidePane.getChildren().setAll(qlTaiKhoanUI.getUI());
                             break;
                         case "Đăng xuất":
                             performLogout();

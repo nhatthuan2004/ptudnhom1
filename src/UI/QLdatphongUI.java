@@ -4,18 +4,14 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.geometry.VPos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import model.*;
-import java.time.LocalDateTime;
+
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
 
 public class QLdatphongUI {
     private final ObservableList<Phong> phongList;
@@ -23,14 +19,10 @@ public class QLdatphongUI {
     private final ObservableList<KhachHang> khachHangList;
     private final ObservableList<DichVu> dichVuList;
     private final ObservableList<KhuyenMai> khuyenMaiList;
+    private final ObservableList<PhieuDatPhong> phieuDatPhongList;
     private FlowPane bookingFlowPane;
     private StackPane contentPane;
     private StackPane mainPane;
-
-    private DatePicker dpNgay;
-    private ComboBox<String> cbGio;
-    private ComboBox<String> cbTrangThaiPhong;
-    private CheckBox showAllCheckBox;
 
     public QLdatphongUI() {
         DataManager dataManager = DataManager.getInstance();
@@ -39,182 +31,148 @@ public class QLdatphongUI {
         this.khachHangList = dataManager.getKhachHangList();
         this.dichVuList = dataManager.getDichVuList();
         this.khuyenMaiList = dataManager.getKhuyenMaiList();
+        this.phieuDatPhongList = dataManager.getPhieuDatPhongList();
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
-        dataManager.addPhongListChangeListener(this::updateBookingDisplayDirectly);
-        dataManager.addHoaDonListChangeListener(this::updateBookingDisplayDirectly);
+        this.contentPane.getChildren().add(mainPane);
+        dataManager.addPhieuDatPhongListChangeListener(this::updateBookingDisplayDirectly);
     }
 
     private StackPane createMainPane() {
-        StackPane root = new StackPane();
-        BorderPane layout = new BorderPane();
+        StackPane mainPane = new StackPane();
+        mainPane.setStyle("-fx-background-color: white;");
 
-        HBox userInfoBox;
-        try {
-            userInfoBox = UserInfoBox.createUserInfoBox();
-        } catch (Exception e) {
-            userInfoBox = new HBox(new Label("User Info Placeholder"));
-            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
-        }
-        userInfoBox.setPrefSize(200, 50);
-        layout.setTop(userInfoBox);
-        BorderPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
-        BorderPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
+        VBox centerLayout = new VBox(15);
+        centerLayout.setPadding(new Insets(20));
+        centerLayout.setAlignment(Pos.TOP_CENTER);
+        centerLayout.setStyle(
+                "-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
+                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
 
-        // Bên trái: infoPane
-        VBox infoPane = new VBox(15); // Giảm spacing từ 20 xuống 15
-        infoPane.setPadding(new Insets(15, 25, 25, 25));
-        infoPane.setAlignment(Pos.TOP_LEFT);
-        infoPane.setPrefWidth(300); // Giảm từ 350 xuống 300
+        Label titleLabel = new Label("Quản Lý Phiếu Đặt Phòng");
+        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20));
 
-        double labelWidth = 140;
+        TextField searchField = new TextField();
+        searchField.setPromptText("Nhập mã phiếu đặt phòng (ví dụ: DP001)");
+        searchField.setPrefWidth(300);
+        searchField.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
-        Label labelNgay = new Label("Ngày:");
-        labelNgay.setMinWidth(labelWidth);
-        dpNgay = new DatePicker(LocalDate.now());
-        dpNgay.setPrefWidth(250); // Giảm từ 300 xuống 250
-        dpNgay.setStyle("-fx-font-size: 14px;");
-        HBox hboxNgay = new HBox(15, labelNgay, dpNgay);
-        hboxNgay.setAlignment(Pos.CENTER_LEFT);
+        Button searchButton = new Button("Tìm kiếm");
+        searchButton.setStyle(
+                "-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
 
-        Label labelGio = new Label("Giờ:");
-        labelGio.setMinWidth(labelWidth);
-        cbGio = new ComboBox<>();
-        for (int i = 0; i < 24; i++) {
-            cbGio.getItems().add(String.format("%02d:00", i));
-        }
-        cbGio.setPromptText("Chọn giờ");
-        cbGio.setPrefWidth(250); // Giảm từ 300 xuống 250
-        cbGio.setStyle("-fx-font-size: 14px;");
-        HBox hboxGio = new HBox(15, labelGio, cbGio);
-        hboxGio.setAlignment(Pos.CENTER_LEFT);
-
-        Label labelTrangThaiPhong = new Label("Trạng thái hóa đơn:");
-        labelTrangThaiPhong.setMinWidth(labelWidth);
-        cbTrangThaiPhong = new ComboBox<>();
-        cbTrangThaiPhong.getItems().addAll("Chưa thanh toán", "Đã thanh toán");
-        cbTrangThaiPhong.setPromptText("Chọn trạng thái");
-        cbTrangThaiPhong.setPrefWidth(250); // Giảm từ 300 xuống 250
-        cbTrangThaiPhong.setStyle("-fx-font-size: 14px;");
-        HBox hboxTrangThaiPhong = new HBox(15, labelTrangThaiPhong, cbTrangThaiPhong);
-        hboxTrangThaiPhong.setAlignment(Pos.CENTER_LEFT);
-
-        Button addBookingButton = new Button("Thêm Phiếu Đặt");
-        addBookingButton.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
-        addBookingButton.setPrefWidth(200); // Tăng từ 150 lên 200
-        addBookingButton.setOnAction(e -> showAddBookingDialog());
-        HBox hboxAddBooking = new HBox(15, new Label(""), addBookingButton);
-        hboxAddBooking.setAlignment(Pos.CENTER_LEFT);
-
-        showAllCheckBox = new CheckBox("Hiển thị tất cả phiếu đặt");
-        showAllCheckBox.setStyle("-fx-font-size: 14px;");
-        showAllCheckBox.setOnAction(e -> filterBookings());
-        HBox hboxShowAll = new HBox(15, new Label(""), showAllCheckBox);
-        hboxShowAll.setAlignment(Pos.CENTER_LEFT);
-
-        infoPane.getChildren().addAll(hboxNgay, hboxGio, hboxTrangThaiPhong, hboxAddBooking, hboxShowAll);
-
-        // Bên phải: bookingPane
-        VBox bookingPane = new VBox(10);
-        bookingPane.setPadding(new Insets(10, 20, 20, 20));
-        bookingPane.setAlignment(Pos.TOP_CENTER);
-        bookingPane.setPrefWidth(550); // Giảm từ 600 xuống 550
+        HBox searchBox = new HBox(10, searchField, searchButton);
+        searchBox.setAlignment(Pos.CENTER);
 
         bookingFlowPane = new FlowPane();
-        bookingFlowPane.setHgap(15);
-        bookingFlowPane.setVgap(15);
+        bookingFlowPane.setHgap(20);
+        bookingFlowPane.setVgap(20);
         bookingFlowPane.setAlignment(Pos.CENTER);
-        bookingFlowPane.setPrefWidth(530); // Giảm từ 580 xuống 530
-
-        cbTrangThaiPhong.setOnAction(e -> filterBookings());
-        dpNgay.setOnAction(e -> filterBookings());
-        cbGio.setOnAction(e -> filterBookings());
+        bookingFlowPane.setPadding(new Insets(10));
 
         updateBookingDisplayDirectly();
 
         ScrollPane scrollPane = new ScrollPane(bookingFlowPane);
         scrollPane.setFitToWidth(true);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scrollPane.setPrefViewportHeight(500);
 
-        bookingPane.getChildren().add(scrollPane);
+        centerLayout.getChildren().addAll(titleLabel, searchBox, scrollPane);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
-        GridPane gridLayout = new GridPane();
-        gridLayout.setPadding(new Insets(10));
-        gridLayout.setHgap(25); // Tăng từ 20 lên 25
-        gridLayout.add(infoPane, 0, 0);
-        gridLayout.add(bookingPane, 1, 0);
-        GridPane.setValignment(infoPane, VPos.TOP);
-        GridPane.setValignment(bookingPane, VPos.TOP);
-        GridPane.setHgrow(bookingPane, Priority.ALWAYS);
+        BorderPane layout = new BorderPane();
+        layout.setCenter(centerLayout);
+        layout.setPadding(new Insets(10));
 
-        VBox layoutMain = new VBox(10, gridLayout);
-        layoutMain.setAlignment(Pos.TOP_CENTER);
+        Runnable searchAction = () -> {
+            String tuKhoa = searchField.getText().trim();
+            filterBookings(tuKhoa);
+        };
 
-        layout.setCenter(layoutMain);
-        root.getChildren().add(layout);
-        return root;
+        searchButton.setOnAction(e -> searchAction.run());
+        searchField.setOnAction(e -> searchAction.run());
+
+        mainPane.getChildren().add(layout);
+        return mainPane;
     }
 
     public StackPane getUI() {
-        contentPane.getChildren().setAll(mainPane);
         return contentPane;
     }
 
-    private void filterBookings() {
-        ObservableList<HoaDon> filteredList = FXCollections.observableArrayList();
-        String trangThai = cbTrangThaiPhong.getValue();
-
-        for (HoaDon hoaDon : hoaDonList) {
-            boolean matches = true;
-            if (trangThai != null && !hoaDon.getTrangThai().equals(trangThai))
-                matches = false;
-            if (matches || showAllCheckBox.isSelected())
-                filteredList.add(hoaDon);
+    private void filterBookings(String searchText) {
+        ObservableList<PhieuDatPhong> filteredList = FXCollections.observableArrayList();
+        if (searchText == null || searchText.trim().isEmpty()) {
+            filteredList.addAll(phieuDatPhongList);
+        } else {
+            String searchLower = searchText.toLowerCase();
+            for (PhieuDatPhong phieu : phieuDatPhongList) {
+                if (phieu.getMaDatPhong().toLowerCase().contains(searchLower) ||
+                    phieu.getMaKhachHang().toLowerCase().contains(searchLower)) {
+                    filteredList.add(phieu);
+                }
+            }
+            if (filteredList.isEmpty()) {
+                showAlert("Thông báo", "Không tìm thấy phiếu đặt phòng nào với từ khóa: " + searchText);
+            }
         }
         updateBookingDisplay(filteredList);
     }
 
-    private void updateBookingDisplay(ObservableList<HoaDon> displayList) {
+    private void updateBookingDisplay(ObservableList<PhieuDatPhong> displayList) {
         bookingFlowPane.getChildren().clear();
-        for (HoaDon hoaDon : displayList) {
+        for (PhieuDatPhong phieu : displayList) {
             VBox bookingBox = new VBox(8);
-            bookingBox.setPrefSize(180, 150); // Tăng từ 160, 130 lên 180, 150
-            bookingBox.setPadding(new Insets(8));
+            bookingBox.setPrefSize(250, 200);
+            bookingBox.setPadding(new Insets(10));
             bookingBox.setAlignment(Pos.CENTER_LEFT);
-            String bgColor = "Chưa thanh toán".equals(hoaDon.getTrangThai()) ? "#FFD700" : "#90EE90";
-            bookingBox.setStyle("-fx-background-color: " + bgColor + "; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #666; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);");
-            bookingBox.setOnMouseClicked(e -> showBookingDetailsDialog(hoaDon));
+            String bgColor = "Chưa xác nhận".equals(phieu.getTrangThai()) ? "#FFD700" : "#90EE90";
+            bookingBox.setStyle("-fx-background-color: " + bgColor + "; -fx-background-radius: 10; -fx-border-radius: 10; " +
+                    "-fx-border-color: #666; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);");
+            bookingBox.setOnMouseClicked(e -> showBookingDetailsDialog(phieu));
 
-            Label maHoaDonLabel = new Label("Hóa đơn: " + hoaDon.getMaHoaDon());
-            maHoaDonLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;"); // Tăng từ 13px lên 14px
-            Label maPhongLabel = new Label("Phòng: " + hoaDon.getMaPhong());
-            maPhongLabel.setStyle("-fx-font-size: 14px;"); // Tăng từ mặc định lên 14px
-            Label tenKhachHangLabel = new Label("Khách: " + hoaDon.getTenKhachHang());
-            tenKhachHangLabel.setStyle("-fx-font-size: 14px;"); // Tăng từ mặc định lên 14px
-            Label trangThaiLabel = new Label("Trạng thái: " + hoaDon.getTrangThai());
-            trangThaiLabel.setStyle("-fx-font-size: 14px;"); // Tăng từ mặc định lên 14px
+            Label maPhieuLabel = new Label("Phiếu: " + phieu.getMaDatPhong());
+            maPhieuLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+            Label maKhachHangLabel = new Label("Khách: " + phieu.getMaKhachHang());
+            Label ngayDenLabel = new Label("Ngày đến: " + (phieu.getNgayDen() != null ? phieu.getNgayDen() : "N/A"));
+            Label ngayDiLabel = new Label("Ngày đi: " + (phieu.getNgayDi() != null ? phieu.getNgayDi() : "N/A"));
+            Label soLuongNguoiLabel = new Label("Số người: " + phieu.getSoLuongNguoi());
+            Label trangThaiLabel = new Label("Trạng thái: " + phieu.getTrangThai());
 
-            maHoaDonLabel.setMaxWidth(160); // Tăng từ 140 lên 160
-            maPhongLabel.setMaxWidth(160);
-            tenKhachHangLabel.setMaxWidth(160);
-            trangThaiLabel.setMaxWidth(160);
+            StringBuilder phongInfo = new StringBuilder("Phòng: ");
+            double totalThanhTien = 0;
+            for (ChitietPhieuDatPhong chiTiet : phieu.getChitietPhieuDatPhongs()) {
+                phongInfo.append(chiTiet.getMaPhong()).append(" (").append(chiTiet.getSoLuong()).append("), ");
+                totalThanhTien += chiTiet.getThanhTien();
+            }
+            Label phongLabel = new Label(phongInfo.length() > 2 ? phongInfo.substring(0, phongInfo.length() - 2) : "Chưa chọn phòng");
+            Label thanhTienLabel = new Label("Thành tiền: " + String.format("%,.0f VNĐ", totalThanhTien));
 
-            bookingBox.getChildren().addAll(maHoaDonLabel, maPhongLabel, tenKhachHangLabel, trangThaiLabel);
+            maPhieuLabel.setMaxWidth(230);
+            maKhachHangLabel.setMaxWidth(230);
+            ngayDenLabel.setMaxWidth(230);
+            ngayDiLabel.setMaxWidth(230);
+            soLuongNguoiLabel.setMaxWidth(230);
+            trangThaiLabel.setMaxWidth(230);
+            phongLabel.setMaxWidth(230);
+            phongLabel.setWrapText(true);
+            thanhTienLabel.setMaxWidth(230);
+
+            bookingBox.getChildren().addAll(maPhieuLabel, maKhachHangLabel, ngayDenLabel, ngayDiLabel,
+                    soLuongNguoiLabel, trangThaiLabel, phongLabel, thanhTienLabel);
             bookingFlowPane.getChildren().add(bookingBox);
         }
     }
 
     private void updateBookingDisplayDirectly() {
-        updateBookingDisplay(hoaDonList);
+        updateBookingDisplay(phieuDatPhongList);
     }
 
     private VBox createCenteredForm(String titleText) {
         VBox form = new VBox(10);
         form.setAlignment(Pos.CENTER);
         form.setPadding(new Insets(20));
-        form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+        form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
+                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
         form.setMaxWidth(600);
         form.setMaxHeight(500);
 
@@ -226,103 +184,33 @@ public class QLdatphongUI {
         return form;
     }
 
-    private void showAddBookingDialog() {
-        VBox form = createCenteredForm("Thêm Phiếu Đặt Mới");
-
-        ComboBox<String> maPhongCombo = new ComboBox<>();
-        phongList.stream().filter(p -> "Trống".equals(p.getTrangThai())).forEach(p -> maPhongCombo.getItems().add(p.getMaPhong()));
-        maPhongCombo.setPromptText("Chọn mã phòng");
-        maPhongCombo.setPrefWidth(250);
-        maPhongCombo.setStyle("-fx-font-size: 16px;");
-        TextField tenKhachHangField = new TextField();
-        tenKhachHangField.setPromptText("Tên khách hàng");
-        tenKhachHangField.setPrefWidth(250);
-        tenKhachHangField.setStyle("-fx-font-size: 16px;");
-        DatePicker ngayDenPicker = new DatePicker(LocalDate.now());
-        ngayDenPicker.setPrefWidth(250);
-        ngayDenPicker.setStyle("-fx-font-size: 16px;");
-        DatePicker ngayDiPicker = new DatePicker(LocalDate.now().plusDays(1));
-        ngayDiPicker.setPrefWidth(250);
-        ngayDiPicker.setStyle("-fx-font-size: 16px;");
-
-        GridPane grid = new GridPane();
-        grid.setHgap(15);
-        grid.setVgap(15);
-        grid.setAlignment(Pos.CENTER);
-        grid.addRow(0, new Label("Mã Phòng:"), maPhongCombo);
-        grid.addRow(1, new Label("Tên Khách Hàng:"), tenKhachHangField);
-        grid.addRow(2, new Label("Ngày Đến:"), ngayDenPicker);
-        grid.addRow(3, new Label("Ngày Đi:"), ngayDiPicker);
-
-        Button btnThem = new Button("Thêm");
-        btnThem.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
-        btnThem.setPrefWidth(120);
-        btnThem.setOnAction(e -> {
-            String maPhong = maPhongCombo.getValue();
-            String tenKhachHang = tenKhachHangField.getText();
-            LocalDate ngayDen = ngayDenPicker.getValue();
-            LocalDate ngayDi = ngayDiPicker.getValue();
-
-            if (maPhong == null || tenKhachHang.isEmpty() || ngayDen == null || ngayDi == null) {
-                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
-                return;
-            }
-
-            if (ngayDen.isAfter(ngayDi)) {
-                showAlert("Lỗi", "Ngày đến phải trước ngày đi!");
-                return;
-            }
-
-            Phong phong = phongList.stream().filter(p -> p.getMaPhong().equals(maPhong)).findFirst().orElse(null);
-            if (phong == null) {
-                showAlert("Lỗi", "Phòng không tồn tại!");
-                return;
-            }
-
-            long soNgayO = ChronoUnit.DAYS.between(ngayDen, ngayDi);
-            double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
-            HoaDon newHoaDon = new HoaDon(
-                    "HD" + (hoaDonList.size() + 1), tenKhachHang, maPhong, tienPhong, 0.0, "Chưa thanh toán",
-                    maPhong, LocalDateTime.now(), "Phòng " + maPhong + " từ " + ngayDen + " đến " + ngayDi,
-                    "Tiền mặt", khachHangList.isEmpty() ? "KH001" : khachHangList.get(khachHangList.size() - 1).getMaKhachHang(), "NV001"
-            );
-            hoaDonList.add(newHoaDon);
-
-            int index = phongList.indexOf(phong);
-            Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Đã đặt", phong.getViTri(), tenKhachHang, phong.getSoNguoiToiDa(), phong.getMoTa());
-            phongList.set(index, updatedPhong);
-
-            updateBookingDisplayDirectly();
-            contentPane.getChildren().setAll(mainPane);
-        });
-
-        Button btnHuy = new Button("Hủy");
-        btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
-        btnHuy.setPrefWidth(120);
-        btnHuy.setOnAction(e -> contentPane.getChildren().setAll(mainPane));
-
-        HBox footer = new HBox(15, btnThem, btnHuy);
-        footer.setAlignment(Pos.CENTER);
-
-        form.getChildren().addAll(grid, footer);
-        contentPane.getChildren().setAll(form);
-    }
-
-    private void showBookingDetailsDialog(HoaDon hoaDon) {
-        VBox form = createCenteredForm("Chi tiết phiếu đặt phòng " + hoaDon.getMaHoaDon());
+    private void showBookingDetailsDialog(PhieuDatPhong phieu) {
+        VBox form = createCenteredForm("Chi tiết phiếu đặt phòng " + phieu.getMaDatPhong());
 
         VBox content = new VBox(10);
         content.setPadding(new Insets(10));
 
-        Label maHoaDonLabel = new Label("Mã hóa đơn: " + hoaDon.getMaHoaDon());
-        Label maPhongLabel = new Label("Mã phòng: " + hoaDon.getMaPhong());
-        Label tenKhachHangLabel = new Label("Tên khách hàng: " + hoaDon.getTenKhachHang());
-        Label trangThaiLabel = new Label("Trạng thái: " + hoaDon.getTrangThai());
-        Label moTaLabel = new Label("Mô tả: " + hoaDon.getMoTa());
-        Label tienPhongLabel = new Label("Tiền phòng: " + hoaDon.getTienPhong());
-        Label tienDichVuLabel = new Label("Tiền dịch vụ: " + hoaDon.getTienDichVu());
+        Label maPhieuLabel = new Label("Mã phiếu đặt phòng: " + phieu.getMaDatPhong());
+        Label maKhachHangLabel = new Label("Mã khách hàng: " + phieu.getMaKhachHang());
+        Label ngayDenLabel = new Label("Ngày đến: " + (phieu.getNgayDen() != null ? phieu.getNgayDen() : "N/A"));
+        Label ngayDiLabel = new Label("Ngày đi: " + (phieu.getNgayDi() != null ? phieu.getNgayDi() : "N/A"));
+        Label ngayDatLabel = new Label("Ngày đặt: " + (phieu.getNgayDat() != null ? phieu.getNgayDat() : "N/A"));
+        Label soLuongNguoiLabel = new Label("Số lượng người: " + phieu.getSoLuongNguoi());
+        Label trangThaiLabel = new Label("Trạng thái: " + phieu.getTrangThai());
 
-        content.getChildren().addAll(maHoaDonLabel, maPhongLabel, tenKhachHangLabel, trangThaiLabel, moTaLabel, tienPhongLabel, tienDichVuLabel);
+        VBox phongDetails = new VBox(5);
+        phongDetails.getChildren().add(new Label("Chi tiết phòng:"));
+        double totalThanhTien = 0;
+        for (ChitietPhieuDatPhong chiTiet : phieu.getChitietPhieuDatPhongs()) {
+            Label chiTietLabel = new Label(String.format("Phòng: %s, Số lượng: %d, Giá phòng: %,.0f VNĐ, Thành tiền: %,.0f VNĐ",
+                    chiTiet.getMaPhong(), chiTiet.getSoLuong(), chiTiet.getGiaPhong(), chiTiet.getThanhTien()));
+            phongDetails.getChildren().add(chiTietLabel);
+            totalThanhTien += chiTiet.getThanhTien();
+        }
+        Label totalLabel = new Label("Tổng thành tiền: " + String.format("%,.0f VNĐ", totalThanhTien));
+
+        content.getChildren().addAll(maPhieuLabel, maKhachHangLabel, ngayDenLabel, ngayDiLabel,
+                ngayDatLabel, soLuongNguoiLabel, trangThaiLabel, phongDetails, totalLabel);
 
         HBox buttons = new HBox(15);
         buttons.setAlignment(Pos.CENTER);
@@ -330,19 +218,19 @@ public class QLdatphongUI {
         Button btnSua = new Button("Sửa");
         btnSua.setStyle("-fx-background-color: #FFA500; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
         btnSua.setPrefWidth(120);
-        btnSua.setOnAction(e -> showEditBookingDialog(hoaDon));
+        btnSua.setOnAction(e -> showEditBookingDialog(phieu));
 
         Button btnThanhToan = new Button("Thanh toán");
         btnThanhToan.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
         btnThanhToan.setPrefWidth(120);
-        btnThanhToan.setOnAction(e -> thanhToanHoaDon(hoaDon));
-        btnThanhToan.setDisable("Đã thanh toán".equals(hoaDon.getTrangThai()));
+        btnThanhToan.setOnAction(e -> thanhToanPhieuDatPhong(phieu));
+        btnThanhToan.setDisable("Xác nhận".equals(phieu.getTrangThai()) || "Đã hủy".equals(phieu.getTrangThai()));
 
         Button btnThemDichVu = new Button("Thêm dịch vụ");
         btnThemDichVu.setStyle("-fx-background-color: #9C27B0; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
         btnThemDichVu.setPrefWidth(120);
-        btnThemDichVu.setOnAction(e -> themDichVuHoaDon(hoaDon));
-        btnThemDichVu.setDisable("Đã thanh toán".equals(hoaDon.getTrangThai()));
+        btnThemDichVu.setOnAction(e -> themDichVuPhieuDatPhong(phieu));
+        btnThemDichVu.setDisable("Xác nhận".equals(phieu.getTrangThai()) || "Đã hủy".equals(phieu.getTrangThai()));
 
         Button btnDong = new Button("Đóng");
         btnDong.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
@@ -355,48 +243,63 @@ public class QLdatphongUI {
         contentPane.getChildren().setAll(form);
     }
 
-    private void showEditBookingDialog(HoaDon hoaDon) {
-        VBox form = createCenteredForm("Chỉnh sửa phiếu đặt phòng " + hoaDon.getMaHoaDon());
+    private void showEditBookingDialog(PhieuDatPhong phieu) {
+        VBox form = createCenteredForm("Chỉnh sửa phiếu đặt phòng " + phieu.getMaDatPhong());
 
-        TextField maHoaDonField = new TextField(hoaDon.getMaHoaDon());
-        maHoaDonField.setDisable(true);
-        maHoaDonField.setPrefWidth(250);
-        maHoaDonField.setStyle("-fx-font-size: 16px;");
-        TextField tenKhachHangField = new TextField(hoaDon.getTenKhachHang());
-        tenKhachHangField.setPrefWidth(250);
-        tenKhachHangField.setStyle("-fx-font-size: 16px;");
-        DatePicker ngayDenPicker = new DatePicker();
+        TextField maPhieuField = new TextField(phieu.getMaDatPhong());
+        maPhieuField.setDisable(true);
+        maPhieuField.setPrefWidth(250);
+        maPhieuField.setStyle("-fx-font-size: 16px;");
+
+        TextField maKhachHangField = new TextField(phieu.getMaKhachHang());
+        maKhachHangField.setPrefWidth(250);
+        maKhachHangField.setStyle("-fx-font-size: 16px;");
+
+        DatePicker ngayDenPicker = new DatePicker(phieu.getNgayDen());
         ngayDenPicker.setPrefWidth(250);
         ngayDenPicker.setStyle("-fx-font-size: 16px;");
-        DatePicker ngayDiPicker = new DatePicker();
+
+        DatePicker ngayDiPicker = new DatePicker(phieu.getNgayDi());
         ngayDiPicker.setPrefWidth(250);
         ngayDiPicker.setStyle("-fx-font-size: 16px;");
 
-        String moTa = hoaDon.getMoTa();
-        String[] parts = moTa.split(" từ | đến ");
-        if (parts.length >= 3) {
-            ngayDenPicker.setValue(LocalDate.parse(parts[1]));
-            ngayDiPicker.setValue(LocalDate.parse(parts[2]));
-        }
+        TextField soLuongNguoiField = new TextField(String.valueOf(phieu.getSoLuongNguoi()));
+        soLuongNguoiField.setPrefWidth(250);
+        soLuongNguoiField.setStyle("-fx-font-size: 16px;");
+        soLuongNguoiField.textProperty().addListener((obs, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                soLuongNguoiField.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
+
+        ComboBox<String> trangThaiCombo = new ComboBox<>();
+        trangThaiCombo.getItems().addAll("Chưa xác nhận", "Xác nhận", "Đã hủy");
+        trangThaiCombo.setValue(phieu.getTrangThai());
+        trangThaiCombo.setPrefWidth(250);
+        trangThaiCombo.setStyle("-fx-font-size: 16px;");
 
         GridPane grid = new GridPane();
         grid.setHgap(15);
         grid.setVgap(15);
         grid.setAlignment(Pos.CENTER);
-        grid.addRow(0, new Label("Mã Hóa Đơn:"), maHoaDonField);
-        grid.addRow(1, new Label("Tên Khách Hàng:"), tenKhachHangField);
+        grid.addRow(0, new Label("Mã Phiếu Đặt Phòng:"), maPhieuField);
+        grid.addRow(1, new Label("Mã Khách Hàng:"), maKhachHangField);
         grid.addRow(2, new Label("Ngày Đến:"), ngayDenPicker);
         grid.addRow(3, new Label("Ngày Đi:"), ngayDiPicker);
+        grid.addRow(4, new Label("Số Lượng Người:"), soLuongNguoiField);
+        grid.addRow(5, new Label("Trạng Thái:"), trangThaiCombo);
 
         Button btnLuu = new Button("Lưu");
         btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
         btnLuu.setPrefWidth(120);
         btnLuu.setOnAction(e -> {
-            String tenKhachHang = tenKhachHangField.getText();
+            String maKhachHang = maKhachHangField.getText();
             LocalDate ngayDen = ngayDenPicker.getValue();
             LocalDate ngayDi = ngayDiPicker.getValue();
+            String soLuongNguoiText = soLuongNguoiField.getText();
+            String trangThai = trangThaiCombo.getValue();
 
-            if (tenKhachHang.isEmpty() || ngayDen == null || ngayDi == null) {
+            if (maKhachHang.isEmpty() || ngayDen == null || ngayDi == null || soLuongNguoiText.isEmpty() || trangThai == null) {
                 showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
                 return;
             }
@@ -406,19 +309,30 @@ public class QLdatphongUI {
                 return;
             }
 
-            Phong phong = phongList.stream().filter(p -> p.getMaPhong().equals(hoaDon.getMaPhong())).findFirst().orElse(null);
-            if (phong == null) {
-                showAlert("Lỗi", "Phòng không tồn tại!");
+            int soLuongNguoi;
+            try {
+                soLuongNguoi = Integer.parseInt(soLuongNguoiText);
+                if (soLuongNguoi <= 0) {
+                    showAlert("Lỗi", "Số lượng người phải lớn hơn 0!");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                showAlert("Lỗi", "Số lượng người phải là số hợp lệ!");
                 return;
             }
 
-            long soNgayO = ChronoUnit.DAYS.between(ngayDen, ngayDi);
-            double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
-            HoaDon updatedHoaDon = new HoaDon(hoaDon.getMaHoaDon(), tenKhachHang, hoaDon.getMaPhong(), tienPhong, hoaDon.getTienDichVu(), hoaDon.getTrangThai(),
-                    hoaDon.getMaPhong(), hoaDon.getNgayLap(), "Phòng " + hoaDon.getMaPhong() + " từ " + ngayDen + " đến " + ngayDi,
-                    hoaDon.getHinhThucThanhToan(), hoaDon.getMaKhachHang(), hoaDon.getMaNhanVien());
-            int index = hoaDonList.indexOf(hoaDon);
-            hoaDonList.set(index, updatedHoaDon);
+            PhieuDatPhong updatedPhieu = new PhieuDatPhong(
+                    phieu.getMaDatPhong(),
+                    ngayDen,
+                    ngayDi,
+                    phieu.getNgayDat(),
+                    soLuongNguoi,
+                    trangThai,
+                    maKhachHang
+            );
+            updatedPhieu.setChitietPhieuDatPhongs(phieu.getChitietPhieuDatPhongs());
+            int index = phieuDatPhongList.indexOf(phieu);
+            phieuDatPhongList.set(index, updatedPhieu);
 
             updateBookingDisplayDirectly();
             contentPane.getChildren().setAll(mainPane);
@@ -431,16 +345,29 @@ public class QLdatphongUI {
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
             confirm.setTitle("Xác nhận hủy");
             confirm.setHeaderText("Bạn có chắc muốn hủy phiếu đặt phòng này?");
-            confirm.setContentText("Hóa đơn: " + hoaDon.getMaHoaDon());
+            confirm.setContentText("Phiếu đặt phòng: " + phieu.getMaDatPhong());
             confirm.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.OK) {
-                    Phong phong = phongList.stream().filter(p -> p.getMaPhong().equals(hoaDon.getMaPhong())).findFirst().orElse(null);
-                    if (phong != null) {
-                        int phongIndex = phongList.indexOf(phong);
-                        Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Trống", phong.getViTri(), moTa, phong.getSoNguoiToiDa(), phong.getMoTa());
-                        phongList.set(phongIndex, updatedPhong);
+                    for (ChitietPhieuDatPhong chiTiet : phieu.getChitietPhieuDatPhongs()) {
+                        Phong phong = phongList.stream()
+                                .filter(p -> p.getMaPhong().equals(chiTiet.getMaPhong()))
+                                .findFirst().orElse(null);
+                        if (phong != null) {
+                            int phongIndex = phongList.indexOf(phong);
+                            Phong updatedPhong = new Phong(
+                                    phong.getMaPhong(),
+                                    phong.getLoaiPhong(),
+                                    phong.getGiaPhong(),
+                                    "Trống",
+                                    phong.getDonDep(),
+                                    phong.getViTri(),
+                                    phong.getSoNguoiToiDa(),
+                                    phong.getMoTa()
+                            );
+                            phongList.set(phongIndex, updatedPhong);
+                        }
                     }
-                    hoaDonList.remove(hoaDon);
+                    phieuDatPhongList.remove(phieu);
                     updateBookingDisplayDirectly();
                     contentPane.getChildren().setAll(mainPane);
                 }
@@ -459,18 +386,17 @@ public class QLdatphongUI {
         contentPane.getChildren().setAll(form);
     }
 
-    private void thanhToanHoaDon(HoaDon hoaDon) {
-        if ("Đã thanh toán".equals(hoaDon.getTrangThai())) {
-            showAlert("Lỗi", "Hóa đơn đã được thanh toán!");
+    private void thanhToanPhieuDatPhong(PhieuDatPhong phieu) {
+        if ("Xác nhận".equals(phieu.getTrangThai()) || "Đã hủy".equals(phieu.getTrangThai())) {
+            showAlert("Lỗi", "Phiếu đặt phòng đã được xác nhận hoặc đã hủy!");
             return;
         }
 
-        double tienPhong = hoaDon.getTienPhong();
-        double tienDichVu = hoaDon.getTienDichVu();
-        double tongTien = tienPhong + tienDichVu;
-        String moTaBanDau = hoaDon.getMoTa();
+        double totalThanhTien = phieu.getChitietPhieuDatPhongs().stream()
+                .mapToDouble(ChitietPhieuDatPhong::getThanhTien)
+                .sum();
 
-        VBox form = createCenteredForm("Thanh toán hóa đơn " + hoaDon.getMaHoaDon());
+        VBox form = createCenteredForm("Thanh toán phiếu đặt phòng " + phieu.getMaDatPhong());
 
         ComboBox<KhuyenMai> promotionCombo = new ComboBox<>(khuyenMaiList.filtered(km -> km.isTrangThai()));
         promotionCombo.setPromptText("Chọn mã khuyến mãi (nếu có)");
@@ -489,40 +415,44 @@ public class QLdatphongUI {
         });
 
         Label discountLabel = new Label("Giảm giá: 0 VNĐ");
-        Label finalTotalLabel = new Label("Tổng tiền cuối: " + String.format("%,.0f VNĐ", tongTien));
+        Label finalTotalLabel = new Label("Tổng tiền cuối: " + String.format("%,.0f VNĐ", totalThanhTien));
 
-        double[] finalTotal = { tongTien };
-        String[] finalMoTa = { moTaBanDau };
+        double[] finalTotal = {totalThanhTien};
+        StringBuilder moTa = new StringBuilder("Thanh toán cho " + phieu.getMaDatPhong());
 
         promotionCombo.setOnAction(e -> {
-        	KhuyenMai selected = promotionCombo.getValue();
+            KhuyenMai selected = promotionCombo.getValue();
             double discount = 0;
+            moTa.setLength(0);
+            moTa.append("Thanh toán cho ").append(phieu.getMaDatPhong());
             if (selected != null) {
-                discount = tongTien * (selected.getChietKhau() / 100);
-                finalTotal[0] = tongTien - discount;
+                discount = totalThanhTien * (selected.getChietKhau() / 100);
+                finalTotal[0] = totalThanhTien - discount;
                 discountLabel.setText("Giảm giá: " + String.format("%,.0f VNĐ", discount));
                 finalTotalLabel.setText("Tổng tiền cuối: " + String.format("%,.0f VNĐ", finalTotal[0]));
-                finalMoTa[0] = moTaBanDau + " - Sử dụng " + selected.getMaChuongTrinhKhuyenMai() + " (Giảm "
-                        + String.format("%,.0f VNĐ", discount) + ")";
+                moTa.append(" - Sử dụng ").append(selected.getMaChuongTrinhKhuyenMai())
+                    .append(" (Giảm ").append(String.format("%,.0f VNĐ", discount)).append(")");
             } else {
-                finalTotal[0] = tongTien;
+                finalTotal[0] = totalThanhTien;
                 discountLabel.setText("Giảm giá: 0 VNĐ");
-                finalTotalLabel.setText("Tổng tiền cuối: " + String.format("%,.0f VNĐ", tongTien));
-                finalMoTa[0] = moTaBanDau;
+                finalTotalLabel.setText("Tổng tiền cuối: " + String.format("%,.0f VNĐ", totalThanhTien));
             }
         });
 
         VBox paymentDetails = new VBox(10);
-        paymentDetails.getChildren().addAll(new Label("Tiền phòng: " + String.format("%,.0f VNĐ", tienPhong)),
-                new Label("Tiền dịch vụ: " + String.format("%,.0f VNĐ", tienDichVu)),
-                new Label("Tổng tiền gốc: " + String.format("%,.0f VNĐ", tongTien)), promotionCombo, discountLabel,
-                finalTotalLabel, new Label("Chọn phương thức thanh toán:"));
+        paymentDetails.getChildren().addAll(
+                new Label("Tổng tiền phòng: " + String.format("%,.0f VNĐ", totalThanhTien)),
+                promotionCombo,
+                discountLabel,
+                finalTotalLabel,
+                new Label("Chọn phương thức thanh toán:")
+        );
 
         Button btnTienMat = new Button("Tiền mặt");
         btnTienMat.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
         btnTienMat.setPrefWidth(120);
         btnTienMat.setOnAction(e -> {
-            completePayment(hoaDon, finalTotal[0], finalMoTa[0], "Tiền mặt");
+            completePayment(phieu, finalTotal[0], moTa.toString(), "Tiền mặt");
             contentPane.getChildren().setAll(mainPane);
         });
 
@@ -531,17 +461,13 @@ public class QLdatphongUI {
         btnOnline.setPrefWidth(120);
         btnOnline.setOnAction(e -> {
             VBox onlineForm = createCenteredForm("Thanh toán Online");
-            Image qrImage = new Image("/img/QRcode.jpg", true);
-            ImageView qrView = new ImageView(qrImage);
-            qrView.setFitWidth(150);
-            qrView.setFitHeight(150);
             Label qrLabel = new Label("Quét mã QR để thanh toán " + String.format("%,.0f VNĐ", finalTotal[0]));
 
             Button btnXacNhan = new Button("Xác nhận đã thu");
             btnXacNhan.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
             btnXacNhan.setPrefWidth(120);
             btnXacNhan.setOnAction(ev -> {
-                completePayment(hoaDon, finalTotal[0], finalMoTa[0], "Online");
+                completePayment(phieu, finalTotal[0], moTa.toString(), "Online");
                 contentPane.getChildren().setAll(mainPane);
             });
 
@@ -553,7 +479,7 @@ public class QLdatphongUI {
             HBox onlineFooter = new HBox(15, btnXacNhan, btnHuyOnline);
             onlineFooter.setAlignment(Pos.CENTER);
 
-            onlineForm.getChildren().addAll(qrView, qrLabel, onlineFooter);
+            onlineForm.getChildren().addAll(qrLabel, onlineFooter);
             contentPane.getChildren().setAll(onlineForm);
         });
 
@@ -562,85 +488,145 @@ public class QLdatphongUI {
         btnHuy.setPrefWidth(120);
         btnHuy.setOnAction(e -> contentPane.getChildren().setAll(mainPane));
 
-        HBox footer = new HBox(15, btnTienMat, btnOnline, btnHuy);
-        footer.setAlignment(Pos.CENTER);
+        HBox paymentButtons = new HBox(15, btnTienMat, btnOnline, btnHuy);
+        paymentButtons.setAlignment(Pos.CENTER);
 
-        form.getChildren().addAll(paymentDetails, footer);
+        form.getChildren().addAll(paymentDetails, paymentButtons);
         contentPane.getChildren().setAll(form);
     }
 
-    private void completePayment(HoaDon hoaDon, double tongTien, String moTa, String hinhThucThanhToan) {
-        int index = hoaDonList.indexOf(hoaDon);
-        if (index != -1) {
-            HoaDon updatedHoaDon = new HoaDon(hoaDon.getMaHoaDon(), hoaDon.getTenKhachHang(), hoaDon.getMaPhong(),
-                    hoaDon.getTienPhong(), hoaDon.getTienDichVu(), "Đã thanh toán", hoaDon.getMaPhong(),
-                    hoaDon.getNgayLap(), moTa, hinhThucThanhToan, hoaDon.getMaKhachHang(), hoaDon.getMaNhanVien());
-            hoaDonList.set(index, updatedHoaDon);
+    private void completePayment(PhieuDatPhong phieu, double finalTotal, String moTa, String hinhThucThanhToan) {
+        for (ChitietPhieuDatPhong chiTiet : phieu.getChitietPhieuDatPhongs()) {
+            Phong phong = phongList.stream()
+                    .filter(p -> p.getMaPhong().equals(chiTiet.getMaPhong()))
+                    .findFirst().orElse(null);
+            if (phong != null) {
+                int phongIndex = phongList.indexOf(phong);
+                Phong updatedPhong = new Phong(
+                        phong.getMaPhong(),
+                        phong.getLoaiPhong(),
+                        phong.getGiaPhong(),
+                        "Trống",
+                        phong.getDonDep(),
+                        phong.getViTri(),
+                        phong.getSoNguoiToiDa(),
+                        phong.getMoTa()
+                );
+                phongList.set(phongIndex, updatedPhong);
+            }
         }
 
-        Phong phong = phongList.stream().filter(p -> p.getMaPhong().equals(hoaDon.getMaPhong())).findFirst().orElse(null);
-        if (phong != null) {
-            int phongIndex = phongList.indexOf(phong);
-            Phong updatedPhong = new Phong(phong.getMaPhong(), phong.getLoaiPhong(), phong.getGiaPhong(), "Trống",
-                    phong.getViTri(), hinhThucThanhToan, phong.getSoNguoiToiDa(), "Chưa dọn dẹp");
-            phongList.set(phongIndex, updatedPhong);
-        }
+        PhieuDatPhong updatedPhieu = new PhieuDatPhong(
+                phieu.getMaDatPhong(),
+                phieu.getNgayDen(),
+                phieu.getNgayDi(),
+                phieu.getNgayDat(),
+                phieu.getSoLuongNguoi(),
+                "Xác nhận",
+                phieu.getMaKhachHang()
+        );
+        updatedPhieu.setChitietPhieuDatPhongs(phieu.getChitietPhieuDatPhongs());
+        int index = phieuDatPhongList.indexOf(phieu);
+        phieuDatPhongList.set(index, updatedPhieu);
+
+        String maHoaDon = "HD" + System.currentTimeMillis();
+        HoaDon hoaDon = new HoaDon(
+                maHoaDon,
+                phieu.getMaKhachHang(),
+                phieu.getChitietPhieuDatPhongs().isEmpty() ? "Unknown" : phieu.getChitietPhieuDatPhongs().get(0).getMaPhong(),
+                finalTotal,
+                0,
+                "Đã thanh toán",
+                phieu.getChitietPhieuDatPhongs().isEmpty() ? "Unknown" : phieu.getChitietPhieuDatPhongs().get(0).getMaPhong(),
+                LocalDate.now(),
+                moTa,
+                hinhThucThanhToan,
+                phieu.getMaKhachHang(),
+                "NV001"
+        );
+        hoaDonList.add(hoaDon);
 
         updateBookingDisplayDirectly();
-        showAlert("Thông báo", "Thanh toán hóa đơn " + hoaDon.getMaHoaDon() + " thành công!");
+        showAlert("Thành công", "Thanh toán phiếu đặt phòng " + phieu.getMaDatPhong() + " thành công!");
     }
 
-    private void themDichVuHoaDon(HoaDon hoaDon) {
-        if ("Đã thanh toán".equals(hoaDon.getTrangThai())) {
-            showAlert("Lỗi", "Không thể thêm dịch vụ cho hóa đơn đã thanh toán!");
-            return;
-        }
+    private void themDichVuPhieuDatPhong(PhieuDatPhong phieu) {
+        VBox form = createCenteredForm("Thêm dịch vụ cho phiếu đặt phòng " + phieu.getMaDatPhong());
 
-        VBox form = createCenteredForm("Thêm dịch vụ cho hóa đơn " + hoaDon.getMaHoaDon());
+        ComboBox<DichVu> dichVuCombo = new ComboBox<>(dichVuList);
+        dichVuCombo.setPromptText("Chọn dịch vụ");
+        dichVuCombo.setPrefWidth(250);
+        dichVuCombo.setStyle("-fx-font-size: 16px;");
+        dichVuCombo.setConverter(new javafx.util.StringConverter<DichVu>() {
+            @Override
+            public String toString(DichVu dv) {
+                return dv != null ? dv.getTenDichVu() + " - " + String.format("%,.0f VNĐ", dv.getGia()) : "";
+            }
 
-        ObservableList<DichVu> dichVuHoatDong = dichVuList.filtered(dv -> "Hoạt động".equals(dv.getTrangThai()));
-        TableView<DichVu> table = new TableView<>(dichVuHoatDong);
-        table.setPrefHeight(200);
-        table.setPrefWidth(450);
+            @Override
+            public DichVu fromString(String string) {
+                return null;
+            }
+        });
 
-        TableColumn<DichVu, String> tenDichVuCol = new TableColumn<>("Tên Dịch Vụ");
-        tenDichVuCol.setCellValueFactory(new PropertyValueFactory<>("tenDichVu"));
-        tenDichVuCol.setPrefWidth(150);
-        TableColumn<DichVu, Double> giaCol = new TableColumn<>("Giá (VNĐ)");
-        giaCol.setCellValueFactory(new PropertyValueFactory<>("gia"));
-        giaCol.setPrefWidth(100);
-        TableColumn<DichVu, String> moTaCol = new TableColumn<>("Mô Tả");
-        moTaCol.setCellValueFactory(new PropertyValueFactory<>("moTa"));
-        moTaCol.setPrefWidth(200);
+        TextField soLuongField = new TextField("1");
+        soLuongField.setPrefWidth(250);
+        soLuongField.setStyle("-fx-font-size: 16px;");
+        soLuongField.textProperty().addListener((obs, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                soLuongField.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
 
-        table.getColumns().addAll(tenDichVuCol, giaCol, moTaCol);
+        Label totalLabel = new Label("Tổng tiền dịch vụ: 0 VNĐ");
+        dichVuCombo.setOnAction(e -> updateServiceTotal(dichVuCombo, soLuongField, totalLabel));
+        soLuongField.textProperty().addListener((obs, oldValue, newValue) -> updateServiceTotal(dichVuCombo, soLuongField, totalLabel));
 
-        Label instructionLabel = new Label("Chọn một dịch vụ từ danh sách:");
+        GridPane grid = new GridPane();
+        grid.setHgap(15);
+        grid.setVgap(15);
+        grid.setAlignment(Pos.CENTER);
+        grid.addRow(0, new Label("Dịch vụ:"), dichVuCombo);
+        grid.addRow(1, new Label("Số lượng:"), soLuongField);
+        grid.addRow(2, new Label(""), totalLabel);
 
         Button btnThem = new Button("Thêm");
         btnThem.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 8 16;");
         btnThem.setPrefWidth(120);
         btnThem.setOnAction(e -> {
-            DichVu selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                showAlert("Lỗi", "Vui lòng chọn một dịch vụ!");
+            DichVu selectedDichVu = dichVuCombo.getValue();
+            String soLuongText = soLuongField.getText();
+
+            if (selectedDichVu == null || soLuongText.isEmpty()) {
+                showAlert("Lỗi", "Vui lòng chọn dịch vụ và nhập số lượng!");
                 return;
             }
 
-            double tienDichVuMoi = hoaDon.getTienDichVu() + selected.getGia();
-            String moTaMoi = hoaDon.getMoTa() + ", " + selected.getTenDichVu() + " (" 
-                            + String.format("%,.0f VNĐ", selected.getGia()) + ")";
+            int soLuong;
+            try {
+                soLuong = Integer.parseInt(soLuongText);
+                if (soLuong <= 0) {
+                    showAlert("Lỗi", "Số lượng phải lớn hơn 0!");
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                showAlert("Lỗi", "Số lượng phải là số hợp lệ!");
+                return;
+            }
 
-            int index = hoaDonList.indexOf(hoaDon);
-            HoaDon updatedHoaDon = new HoaDon(hoaDon.getMaHoaDon(), hoaDon.getTenKhachHang(), hoaDon.getMaPhong(),
-                    hoaDon.getTienPhong(), tienDichVuMoi, hoaDon.getTrangThai(), hoaDon.getMaPhong(),
-                    hoaDon.getNgayLap(), moTaMoi, hoaDon.getHinhThucThanhToan(), hoaDon.getMaKhachHang(),
-                    hoaDon.getMaNhanVien());
-            hoaDonList.set(index, updatedHoaDon);
+            double additionalCost = selectedDichVu.getGia() * soLuong;
+            ChitietHoaDon chiTietHoaDon = new ChitietHoaDon(
+                    soLuong, phieu.getMaDatPhong(),
+                    selectedDichVu.getMaDichVu(),
+                    soLuong,
+                    selectedDichVu.getGia(),
+                    additionalCost, soLuongText, soLuongText, soLuongText, soLuongText, soLuongText
+            );
+            phieu.addChitietHoaDon(chiTietHoaDon);
 
             updateBookingDisplayDirectly();
             contentPane.getChildren().setAll(mainPane);
-            showAlert("Thông báo", "Thêm dịch vụ " + selected.getTenDichVu() + " thành công!");
+            showAlert("Thành công", "Đã thêm dịch vụ " + selectedDichVu.getTenDichVu() + " vào phiếu đặt phòng!");
         });
 
         Button btnHuy = new Button("Hủy");
@@ -651,8 +637,24 @@ public class QLdatphongUI {
         HBox footer = new HBox(15, btnThem, btnHuy);
         footer.setAlignment(Pos.CENTER);
 
-        form.getChildren().addAll(instructionLabel, table, footer);
+        form.getChildren().addAll(grid, footer);
         contentPane.getChildren().setAll(form);
+    }
+
+    private void updateServiceTotal(ComboBox<DichVu> dichVuCombo, TextField soLuongField, Label totalLabel) {
+        DichVu selectedDichVu = dichVuCombo.getValue();
+        String soLuongText = soLuongField.getText();
+        if (selectedDichVu != null && !soLuongText.isEmpty()) {
+            try {
+                int soLuong = Integer.parseInt(soLuongText);
+                double total = selectedDichVu.getGia() * soLuong;
+                totalLabel.setText("Tổng tiền dịch vụ: " + String.format("%,.0f VNĐ", total));
+            } catch (NumberFormatException e) {
+                totalLabel.setText("Tổng tiền dịch vụ: 0 VNĐ");
+            }
+        } else {
+            totalLabel.setText("Tổng tiền dịch vụ: 0 VNĐ");
+        }
     }
 
     private void showAlert(String title, String message) {

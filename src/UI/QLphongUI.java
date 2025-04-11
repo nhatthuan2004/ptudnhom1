@@ -11,6 +11,7 @@ import javafx.scene.layout.*;
 import model.*;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +34,7 @@ public class QLphongUI {
     private CheckBox showAllCheckBox;
 
     public QLphongUI() {
-        try {	
+        try {   
             phongDao = new Phong_Dao();
             phongList = FXCollections.observableArrayList(phongDao.getAllPhong());
         } catch (Exception e) {
@@ -208,12 +209,35 @@ public class QLphongUI {
 
     private void updateRoomDisplay(ObservableList<Phong> displayList) {
         roomFlowPane.getChildren().clear();
+        LocalDate selectedDate = dpNgay.getValue();
+
         for (Phong phong : displayList) {
             VBox roomBox = new VBox(8);
             roomBox.setPrefSize(180, 150);
             roomBox.setPadding(new Insets(10));
             roomBox.setAlignment(Pos.CENTER_LEFT);
-            String bgColor = switch (phong.getTrangThai()) {
+
+            String trangThaiHienTai = phong.getTrangThai();
+            if ("Đã đặt".equals(trangThaiHienTai) && selectedDate != null) {
+                HoaDon hoaDon = hoaDonList.stream()
+                    .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
+                    .findFirst()
+                    .orElse(null);
+                
+                if (hoaDon != null) {
+                    String moTa = hoaDon.getMoTa();
+                    String[] parts = moTa.split(" từ | đến ");
+                    if (parts.length >= 3) {
+                        LocalDate ngayDen = LocalDate.parse(parts[1].split(" ")[0]);
+                        LocalDate ngayDi = LocalDate.parse(parts[2].split(" ")[0]);
+                        if (selectedDate.isBefore(ngayDen) || selectedDate.isAfter(ngayDi)) {
+                            trangThaiHienTai = "Trống";
+                        }
+                    }
+                }
+            }
+
+            String bgColor = switch (trangThaiHienTai) {
                 case "Trống" -> "#90EE90";
                 case "Đã đặt" -> "#FFD700";
                 case "Đang sửa" -> "#FF6347";
@@ -226,14 +250,14 @@ public class QLphongUI {
             maPhongLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
             Label loaiPhongLabel = new Label("Loại: " + phong.getLoaiPhong());
             loaiPhongLabel.setStyle("-fx-font-size: 14px;");
-            Label trangThaiLabel = new Label("Trạng thái: " + phong.getTrangThai());
+            Label trangThaiLabel = new Label("Trạng thái: " + trangThaiHienTai);
             trangThaiLabel.setStyle("-fx-font-size: 14px;");
             Label donDepLabel = new Label("Dọn dẹp: " + phong.getDonDep());
 
             HoaDon hoaDon = hoaDonList.stream()
-                    .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
-                    .findFirst()
-                    .orElse(null);
+                .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
+                .findFirst()
+                .orElse(null);
             Label khachHangLabel = new Label("Khách: " + (hoaDon != null ? hoaDon.getTenKhachHang() : "Không có"));
             khachHangLabel.setStyle("-fx-font-size: 14px;");
 
@@ -273,7 +297,7 @@ public class QLphongUI {
 
         TextField maPhongField = new TextField();
         maPhongField.setPromptText("Mã phòng (e.g., P401)");
-        maPhongField.setDisable(true); // Mã phòng sẽ được sinh tự động
+        maPhongField.setDisable(true);
         ComboBox<String> loaiPhongCombo = new ComboBox<>();
         loaiPhongCombo.getItems().addAll("Đơn", "Đôi", "VIP");
         loaiPhongCombo.setPromptText("Chọn loại phòng");
@@ -293,7 +317,7 @@ public class QLphongUI {
         moTaField.setPromptText("Mô tả (e.g., Phòng sạch sẽ)");
 
         try {
-            maPhongField.setText(phongDao.getNextMaPhong()); // Sinh mã tự động
+            maPhongField.setText(phongDao.getNextMaPhong());
         } catch (SQLException e) {
             showAlert("Lỗi", "Không thể sinh mã phòng: " + e.getMessage());
             return;
@@ -397,9 +421,9 @@ public class QLphongUI {
         Label moTaLabel = new Label("Mô tả: " + phong.getMoTa());
 
         HoaDon hoaDon = hoaDonList.stream()
-                .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
-                .findFirst()
-                .orElse(null);
+            .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
+            .findFirst()
+            .orElse(null);
         Label khachHangLabel = new Label("Khách hàng: " + (hoaDon != null ? hoaDon.getTenKhachHang() : "Không có"));
 
         content.getChildren().addAll(phongLabel, maPhongLabel, loaiPhongLabel, giaPhongLabel, trangThaiLabel,
@@ -493,9 +517,9 @@ public class QLphongUI {
             }
 
             HoaDon hoaDon = hoaDonList.stream()
-                    .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
-                    .findFirst()
-                    .orElse(null);
+                .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
+                .findFirst()
+                .orElse(null);
             if (hoaDon != null && !"Đã đặt".equals(trangThai)) {
                 showAlert("Lỗi", "Phòng đang có đặt phòng, không thể thay đổi trạng thái khác 'Đã đặt'!");
                 return;
@@ -520,9 +544,9 @@ public class QLphongUI {
         btnXoa.setStyle("-fx-background-color: #FF0000; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
         btnXoa.setOnAction(e -> {
             HoaDon hoaDon = hoaDonList.stream()
-                    .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
-                    .findFirst()
-                    .orElse(null);
+                .filter(hd -> hd.getMaPhong().equals(phong.getMaPhong()) && "Chưa thanh toán".equals(hd.getTrangThai()))
+                .findFirst()
+                .orElse(null);
             if (hoaDon != null) {
                 showAlert("Lỗi", "Không thể xóa phòng đang có đặt phòng!");
                 return;

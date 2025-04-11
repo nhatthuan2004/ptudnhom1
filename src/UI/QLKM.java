@@ -1,7 +1,5 @@
 package UI;
 
-import dao.KhuyenMai_Dao;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -10,22 +8,16 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import model.KhuyenMai;
 
-import java.sql.SQLException;
-
 public class QLKM {
     private final ObservableList<KhuyenMai> danhSachKhuyenMai;
     private TableView<KhuyenMai> table;
     private StackPane contentPane;
     private StackPane mainPane;
-    private final KhuyenMai_Dao khuyenMaiDao;
+    private final DataManager dataManager;
 
     public QLKM() {
-        try {
-            khuyenMaiDao = new KhuyenMai_Dao();
-            danhSachKhuyenMai = FXCollections.observableArrayList(khuyenMaiDao.getAllKhuyenMai());
-        } catch (Exception e) {
-            throw new RuntimeException("Không thể kết nối tới cơ sở dữ liệu!", e);
-        }
+        dataManager = DataManager.getInstance();
+        this.danhSachKhuyenMai = dataManager.getKhuyenMaiList();
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
     }
@@ -35,6 +27,7 @@ public class QLKM {
         mainPane.setStyle("-fx-background-color: #f0f0f0;");
         mainPane.setPrefSize(1120, 800);
 
+        // UserInfoBox
         HBox userInfoBox;
         try {
             userInfoBox = UserInfoBox.createUserInfoBox();
@@ -47,6 +40,7 @@ public class QLKM {
         StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
+        // Nút thêm khuyến mãi
         Button addButton = new Button("+ Thêm khuyến mãi");
         addButton.setStyle(
             "-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; " +
@@ -62,6 +56,7 @@ public class QLKM {
         topHeader.setSpacing(10);
         StackPane.setAlignment(topHeader, Pos.TOP_LEFT);
 
+        // Bảng khuyến mãi
         table = new TableView<>(danhSachKhuyenMai);
         table.setPrefWidth(1120);
         table.setPrefHeight(740);
@@ -136,12 +131,7 @@ public class QLKM {
                         confirm.setContentText("Khuyến mãi: " + getTableRow().getItem().getTenChuongTrinhKhuyenMai());
                         confirm.showAndWait().ifPresent(response -> {
                             if (response == ButtonType.OK) {
-                                try {
-                                    khuyenMaiDao.xoaKhuyenMai(getTableRow().getItem().getMaChuongTrinhKhuyenMai());
-                                    danhSachKhuyenMai.remove(getTableRow().getItem());
-                                } catch (SQLException ex) {
-                                    showAlert("Lỗi", "Không thể xóa khuyến mãi: " + ex.getMessage());
-                                }
+                                danhSachKhuyenMai.remove(getTableRow().getItem());
                             }
                         });
                     });
@@ -193,7 +183,7 @@ public class QLKM {
 
         TextField tfMaKhuyenMai = new TextField(isEditMode ? khuyenMai.getMaChuongTrinhKhuyenMai() : "");
         tfMaKhuyenMai.setPromptText("Mã khuyến mãi...");
-        tfMaKhuyenMai.setDisable(true); // Luôn disable vì mã KM sẽ tự sinh hoặc không chỉnh sửa
+        tfMaKhuyenMai.setDisable(isEditMode);
 
         TextField tfTenKhuyenMai = new TextField(isEditMode ? khuyenMai.getTenChuongTrinhKhuyenMai() : "");
         tfTenKhuyenMai.setPromptText("Tên khuyến mãi...");
@@ -222,12 +212,13 @@ public class QLKM {
         Button btnLuu = new Button("Lưu");
         btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
         btnLuu.setOnAction(e -> {
+            String maKhuyenMai = tfMaKhuyenMai.getText();
             String tenKhuyenMai = tfTenKhuyenMai.getText();
             String moTa = tfMoTa.getText();
             String chietKhauText = tfChietKhau.getText();
             boolean trangThai = cbTrangThai.isSelected();
 
-            if (tenKhuyenMai.isEmpty() || moTa.isEmpty() || chietKhauText.isEmpty()) {
+            if (maKhuyenMai.isEmpty() || tenKhuyenMai.isEmpty() || moTa.isEmpty() || chietKhauText.isEmpty()) {
                 showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
                 return;
             }
@@ -244,31 +235,25 @@ public class QLKM {
                 return;
             }
 
-            try {
-                KhuyenMai newKhuyenMai = isEditMode ? khuyenMai : new KhuyenMai(chietKhauText, chietKhauText, chietKhau, chietKhauText, trangThai);
-                if (!isEditMode) {
-                    String maKhuyenMai = khuyenMaiDao.getNextMaKhuyenMai();
-                    tfMaKhuyenMai.setText(maKhuyenMai); // Hiển thị mã tự sinh
-                    newKhuyenMai.setMaChuongTrinhKhuyenMai(maKhuyenMai);
-                }
-                newKhuyenMai.setTenChuongTrinhKhuyenMai(tenKhuyenMai);
-                newKhuyenMai.setMoTaChuongTrinhKhuyenMai(moTa);
-                newKhuyenMai.setChietKhau(chietKhau);
-                newKhuyenMai.setTrangThai(trangThai);
+            KhuyenMai newKhuyenMai = isEditMode ? khuyenMai : new KhuyenMai(chietKhauText, chietKhauText, chietKhau, trangThai);
+            newKhuyenMai.setMaChuongTrinhKhuyenMai(maKhuyenMai);
+            newKhuyenMai.setTenChuongTrinhKhuyenMai(tenKhuyenMai);
+            newKhuyenMai.setMoTaChuongTrinhKhuyenMai(moTa);
+            newKhuyenMai.setChietKhau(chietKhau);
+            newKhuyenMai.setTrangThai(trangThai);
 
-                if (!isEditMode) {
-                    khuyenMaiDao.themKhuyenMai(newKhuyenMai);
-                    danhSachKhuyenMai.add(newKhuyenMai);
-                } else {
-                    khuyenMaiDao.suaKhuyenMai(newKhuyenMai);
-                    int index = danhSachKhuyenMai.indexOf(khuyenMai);
-                    danhSachKhuyenMai.set(index, newKhuyenMai);
-                    table.refresh();
+            if (!isEditMode) {
+                if (danhSachKhuyenMai.stream().anyMatch(km -> km.getMaChuongTrinhKhuyenMai().equals(maKhuyenMai))) {
+                    showAlert("Lỗi", "Mã khuyến mãi " + maKhuyenMai + " đã tồn tại!");
+                    return;
                 }
-                contentPane.getChildren().setAll(mainPane);
-            } catch (SQLException ex) {
-                showAlert("Lỗi", "Không thể lưu khuyến mãi: " + ex.getMessage());
+                danhSachKhuyenMai.add(newKhuyenMai);
+            } else {
+                int index = danhSachKhuyenMai.indexOf(khuyenMai);
+                danhSachKhuyenMai.set(index, newKhuyenMai);
+                table.refresh();
             }
+            contentPane.getChildren().setAll(mainPane);
         });
 
         Button btnHuy = new Button("Hủy");
@@ -291,7 +276,7 @@ public class QLKM {
     }
 
     public ObservableList<KhuyenMai> getActivePromotions() {
-        return danhSachKhuyenMai.filtered(KhuyenMai::isTrangThai);
+        return danhSachKhuyenMai.filtered(km -> km.isTrangThai());
     }
 
     public ObservableList<KhuyenMai> getDanhSachKhuyenMai() {
