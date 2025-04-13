@@ -9,7 +9,7 @@ public class ConnectDB {
     private static final ConnectDB instance = new ConnectDB();
 
     // Kết nối SQL Server - chú ý đổi tên server nếu cần
-    private static final String URL = "jdbc:sqlserver://NhatThuan:1433;databaseName=HotelManagement;encrypt=true;trustServerCertificate=true;";
+    private static final String URL = "jdbc:sqlserver://NhatThuan:1433;databaseName=Khachsan;encrypt=true;trustServerCertificate=true;";
     private static final String USER = "sa";
     private static final String PASSWORD = "123456";
 
