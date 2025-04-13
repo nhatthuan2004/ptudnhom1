@@ -1,5 +1,7 @@
 package UI;
 
+import dao.ChitietPhieuDatPhong_Dao;
+import dao.PhieuDatPhong_Dao;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -10,6 +12,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import model.*;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
@@ -33,9 +36,31 @@ public class QLdatphongUI {
         this.khuyenMaiList = dataManager.getKhuyenMaiList();
         this.phieuDatPhongList = dataManager.getPhieuDatPhongList();
         this.contentPane = new StackPane();
+
+        // Load dữ liệu từ database
+        loadPhieuDatPhongFromDatabase();
+
         this.mainPane = createMainPane();
         this.contentPane.getChildren().add(mainPane);
         dataManager.addPhieuDatPhongListChangeListener(this::updateBookingDisplayDirectly);
+    }
+
+    private void loadPhieuDatPhongFromDatabase() {
+        try {
+            PhieuDatPhong_Dao phieuDao = new PhieuDatPhong_Dao();
+            ChitietPhieuDatPhong_Dao chiTietDao = new ChitietPhieuDatPhong_Dao();
+
+            // Lấy tất cả phiếu đặt phòng từ database
+            phieuDatPhongList.clear(); // Xóa dữ liệu cũ trong danh sách
+            phieuDatPhongList.addAll(phieuDao.getAllPhieuDatPhong());
+
+            // Load chi tiết phòng cho từng phiếu
+            for (PhieuDatPhong phieu : phieuDatPhongList) {
+                phieu.setChitietPhieuDatPhongs(chiTietDao.getChitietByMaDatPhong(phieu.getMaDatPhong()));
+            }
+        } catch (SQLException e) {
+            showAlert("Lỗi", "Không thể load dữ liệu phiếu đặt phòng: " + e.getMessage());
+        }
     }
 
     private StackPane createMainPane() {
@@ -130,35 +155,39 @@ public class QLdatphongUI {
                     "-fx-border-color: #666; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);");
             bookingBox.setOnMouseClicked(e -> showBookingDetailsDialog(phieu));
 
-            Label maPhieuLabel = new Label("Phiếu: " + phieu.getMaDatPhong());
+            // Hiển thị thông tin giống mẫu
+            Label maPhieuLabel = new Label("Mã phiếu đặt phòng: " + phieu.getMaDatPhong());
             maPhieuLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-            Label maKhachHangLabel = new Label("Khách: " + phieu.getMaKhachHang());
+            Label maKhachHangLabel = new Label("Mã khách hàng: " + phieu.getMaKhachHang());
             Label ngayDenLabel = new Label("Ngày đến: " + (phieu.getNgayDen() != null ? phieu.getNgayDen() : "N/A"));
             Label ngayDiLabel = new Label("Ngày đi: " + (phieu.getNgayDi() != null ? phieu.getNgayDi() : "N/A"));
-            Label soLuongNguoiLabel = new Label("Số người: " + phieu.getSoLuongNguoi());
+            Label soLuongNguoiLabel = new Label("Số lượng người: " + phieu.getSoLuongNguoi());
             Label trangThaiLabel = new Label("Trạng thái: " + phieu.getTrangThai());
 
-            StringBuilder phongInfo = new StringBuilder("Phòng: ");
+            // Chi tiết phòng
+            VBox phongDetails = new VBox(5);
+            phongDetails.getChildren().add(new Label("Chi tiết phòng:"));
             double totalThanhTien = 0;
             for (ChitietPhieuDatPhong chiTiet : phieu.getChitietPhieuDatPhongs()) {
-                phongInfo.append(chiTiet.getMaPhong()).append(" (").append(chiTiet.getSoLuong()).append("), ");
+                Label chiTietLabel = new Label(String.format("Phòng: %s, Số lượng: %d, Giá phòng: %,.0f VNĐ, Thành tiền: %,.0f VNĐ",
+                        chiTiet.getMaPhong(), chiTiet.getSoLuong(), chiTiet.getGiaPhong(), chiTiet.getThanhTien()));
+                phongDetails.getChildren().add(chiTietLabel);
                 totalThanhTien += chiTiet.getThanhTien();
             }
-            Label phongLabel = new Label(phongInfo.length() > 2 ? phongInfo.substring(0, phongInfo.length() - 2) : "Chưa chọn phòng");
-            Label thanhTienLabel = new Label("Thành tiền: " + String.format("%,.0f VNĐ", totalThanhTien));
+            Label totalLabel = new Label("Tổng thành tiền: " + String.format("%,.0f VNĐ", totalThanhTien));
 
+            // Giới hạn kích thước để tránh tràn
             maPhieuLabel.setMaxWidth(230);
             maKhachHangLabel.setMaxWidth(230);
             ngayDenLabel.setMaxWidth(230);
             ngayDiLabel.setMaxWidth(230);
             soLuongNguoiLabel.setMaxWidth(230);
             trangThaiLabel.setMaxWidth(230);
-            phongLabel.setMaxWidth(230);
-            phongLabel.setWrapText(true);
-            thanhTienLabel.setMaxWidth(230);
+            phongDetails.setMaxWidth(230);
+            totalLabel.setMaxWidth(230);
 
             bookingBox.getChildren().addAll(maPhieuLabel, maKhachHangLabel, ngayDenLabel, ngayDiLabel,
-                    soLuongNguoiLabel, trangThaiLabel, phongLabel, thanhTienLabel);
+                    soLuongNguoiLabel, trangThaiLabel, phongDetails, totalLabel);
             bookingFlowPane.getChildren().add(bookingBox);
         }
     }
@@ -333,6 +362,14 @@ public class QLdatphongUI {
             updatedPhieu.setChitietPhieuDatPhongs(phieu.getChitietPhieuDatPhongs());
             int index = phieuDatPhongList.indexOf(phieu);
             phieuDatPhongList.set(index, updatedPhieu);
+
+            // Cập nhật database khi sửa
+            try {
+                PhieuDatPhong_Dao phieuDao = new PhieuDatPhong_Dao();
+                phieuDao.addPhieuDatPhong(updatedPhieu); // Cần sửa thành update nếu có phương thức update
+            } catch (SQLException ex) {
+                showAlert("Lỗi", "Không thể cập nhật phiếu đặt phòng: " + ex.getMessage());
+            }
 
             updateBookingDisplayDirectly();
             contentPane.getChildren().setAll(mainPane);

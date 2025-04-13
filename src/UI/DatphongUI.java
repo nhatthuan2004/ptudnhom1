@@ -2,6 +2,8 @@ package UI;
 
 import dao.KhachHang_Dao;
 import dao.Phong_Dao;
+import dao.PhieuDatPhong_Dao;
+import dao.ChitietPhieuDatPhong_Dao;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -13,10 +15,12 @@ import model.ChitietPhieuDatPhong;
 import model.KhachHang;
 import model.PhieuDatPhong;
 import model.Phong;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+
+import connectDB.ConnectDB;
 
 public class DatphongUI {
     private TableView<Phong> tablePhongTrong;
@@ -26,6 +30,8 @@ public class DatphongUI {
     private ObservableList<Phong> allPhongList;
     private final Phong_Dao phongDao;
     private final KhachHang_Dao khachHangDao;
+    private final PhieuDatPhong_Dao phieuDatPhongDao;
+    private final ChitietPhieuDatPhong_Dao chitietPhieuDatPhongDao;
 
     private TextField tfHoTen, tfCCCD, tfDiaChi, tfSDT, tfQuocTich, tfEmail, tfSoLuongNguoi;
     private ComboBox<String> cbGioiTinh;
@@ -35,6 +41,8 @@ public class DatphongUI {
         try {
             phongDao = new Phong_Dao();
             khachHangDao = new KhachHang_Dao();
+            phieuDatPhongDao = new PhieuDatPhong_Dao();
+            chitietPhieuDatPhongDao = new ChitietPhieuDatPhong_Dao();
             allPhongList = FXCollections.observableArrayList(phongDao.getAllPhong());
         } catch (Exception e) {
             throw new RuntimeException("Không thể kết nối tới cơ sở dữ liệu!", e);
@@ -382,7 +390,17 @@ public class DatphongUI {
         LocalDate ngaySinh = dpNgaySinh.getValue();
         String gioiTinh = cbGioiTinh.getValue();
 
-        // Validate inputs
+        // Kiểm tra các trường bắt buộc trước khi lưu
+        if (soLuongNguoiText.isEmpty()) {
+            showAlert("Lỗi", "Số lượng người không được để trống.");
+            return;
+        }
+
+        if (tfHoTen.getText().isEmpty()) {
+            showAlert("Lỗi", "Họ tên không được để trống.");
+            return;
+        }
+
         if (!sdt.matches("0\\d{9}")) {
             showAlert("Lỗi", "SĐT phải có đúng 10 số và bắt đầu bằng 0.");
             return;
@@ -398,8 +416,12 @@ public class DatphongUI {
             return;
         }
 
-        if (tfHoTen.getText().isEmpty() || tfDiaChi.getText().isEmpty() || tfQuocTich.getText().isEmpty() ||
-                soLuongNguoiText.isEmpty() || gioiTinh == null || ngaySinh == null || ngayDen == null || ngayDi == null ||
+        if (tfDiaChi.getText().isEmpty() || tfQuocTich.getText().isEmpty()) {
+            showAlert("Lỗi", "Địa chỉ và quốc tịch không được để trống.");
+            return;
+        }
+
+        if (gioiTinh == null || ngaySinh == null || ngayDen == null || ngayDi == null ||
                 cbGioDen.getValue() == null || cbGioDi.getValue() == null || phongDaChonList.isEmpty()) {
             showAlert("Lỗi", "Vui lòng nhập đầy đủ thông tin và chọn ít nhất một phòng.");
             return;
@@ -429,11 +451,8 @@ public class DatphongUI {
 
         DataManager dataManager = DataManager.getInstance();
         ObservableList<KhachHang> khachHangList = dataManager.getKhachHangList();
-        ObservableList<PhieuDatPhong> phieuDatPhongList = dataManager.getPhieuDatPhongList();
 
-        long soNgayO = ChronoUnit.DAYS.between(ngayDen, ngayDi);
-
-        // Handle customer
+        // Xử lý khách hàng
         KhachHang khachHang;
         try {
             KhachHang existingCustomer = khachHangDao.getKhachHangBySDT(sdt);
@@ -441,15 +460,15 @@ public class DatphongUI {
                 khachHang = existingCustomer;
             } else {
                 khachHang = new KhachHang(
-                    "KH" + String.format("%03d", khachHangList.size() + 1),
-                    tfHoTen.getText(),
-                    tfSDT.getText(),
-                    tfEmail.getText(),
-                    tfDiaChi.getText(),
-                    tfCCCD.getText(),
-                    dpNgaySinh.getValue(),
-                    tfQuocTich.getText(),
-                    cbGioiTinh.getValue()
+                        "KH" + String.format("%03d", khachHangList.size() + 1),
+                        tfHoTen.getText(),
+                        tfSDT.getText(),
+                        tfEmail.getText(),
+                        tfDiaChi.getText(),
+                        tfCCCD.getText(),
+                        dpNgaySinh.getValue(),
+                        tfQuocTich.getText(),
+                        cbGioiTinh.getValue()
                 );
                 khachHangDao.themKhachHang(khachHang);
                 dataManager.addKhachHang(khachHang);
@@ -459,59 +478,97 @@ public class DatphongUI {
             return;
         }
 
-        // Create PhieuDatPhong
-        String maDatPhong = "DP" + String.format("%03d", phieuDatPhongList.size() + 1);
+        // Tạo mã đặt phòng tự động
+        String maDatPhong;
+        try {
+            maDatPhong = phieuDatPhongDao.getNextMaDatPhong();
+        } catch (SQLException e) {
+            showAlert("Lỗi", "Không thể tạo mã đặt phòng: " + e.getMessage());
+            return;
+        }
+
+        // Tạo PhieuDatPhong
         PhieuDatPhong phieuDatPhong = new PhieuDatPhong(
-            maDatPhong,
-            ngayDen,
-            ngayDi,
-            LocalDate.now(),
-            soLuongNguoi,
-            "Chưa xác nhận",
-            khachHang.getMaKhachHang()
+                maDatPhong,
+                ngayDen,
+                ngayDi,
+                LocalDate.now(),
+                soLuongNguoi,
+                "Chưa xác nhận",
+                khachHang.getMaKhachHang()
         );
 
-        // Process selected rooms
-        for (Phong phong : phongDaChonList) {
-            int index = allPhongList.indexOf(phong);
-            if (index != -1) {
-                Phong updatedPhong = new Phong(
-                    phong.getMaPhong(),
-                    phong.getLoaiPhong(),
-                    phong.getGiaPhong(),
-                    "Đã đặt",
-                    phong.getDonDep(),
-                    phong.getViTri(),
-                    phong.getSoNguoiToiDa(),
-                    phong.getMoTa()
-                );
+        long soNgayO = ChronoUnit.DAYS.between(ngayDen, ngayDi);
 
-                try {
-                    phongDao.suaPhong(updatedPhong);
+        // Bắt đầu giao dịch
+        Connection conn = null;
+        try {
+            conn = ConnectDB.getInstance().getConnection();
+            conn.setAutoCommit(false);
+
+            // Lưu PhieuDatPhong
+            phieuDatPhongDao.addPhieuDatPhong(phieuDatPhong);
+
+            // Xử lý các phòng đã chọn
+            for (Phong phong : phongDaChonList) {
+                int index = allPhongList.indexOf(phong);
+                if (index != -1) {
+                    Phong updatedPhong = new Phong(
+                            phong.getMaPhong(),
+                            phong.getLoaiPhong(),
+                            phong.getGiaPhong(),
+                            "Đã đặt",
+                            phong.getDonDep(),
+                            phong.getViTri(),
+                            phong.getSoNguoiToiDa(),
+                            phong.getMoTa()
+                    );
+
+                    // Cập nhật trạng thái phòng
+                    phongDao.suaPhong(updatedPhong);	
                     allPhongList.set(index, updatedPhong);
                     dataManager.getPhongList().set(dataManager.getPhongList().indexOf(phong), updatedPhong);
-                } catch (SQLException e) {
-                    showAlert("Lỗi", "Không thể cập nhật trạng thái phòng " + phong.getMaPhong() + ": " + e.getMessage());
-                    return;
-                }
 
-                // Create ChitietPhieuDatPhong
-                double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
-                ChitietPhieuDatPhong chiTiet = new ChitietPhieuDatPhong(
-                    phong.getMaPhong(),
-                    maDatPhong,
-                    phong.getGiaPhong(),
-                    tienPhong,
-                    phong.getSoNguoiToiDa()
-                );
-                phieuDatPhong.addChitietPhieuDatPhong(chiTiet);
+                    // Tạo và lưu ChitietPhieuDatPhong
+                    double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
+                    ChitietPhieuDatPhong chiTiet = new ChitietPhieuDatPhong(
+                            phong.getMaPhong(),
+                            maDatPhong,
+                            phong.getGiaPhong(),
+                            tienPhong,
+                            phong.getSoNguoiToiDa()
+                    );
+                    chitietPhieuDatPhongDao.addChitietPhieuDatPhong(chiTiet);
+                    phieuDatPhong.addChitietPhieuDatPhong(chiTiet);
+                }
+            }
+
+            // Cam kết giao dịch
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException rollbackEx) {
+                showAlert("Lỗi", "Không thể hoàn tác giao dịch: " + rollbackEx.getMessage());
+            }
+            showAlert("Lỗi", "Không thể lưu phiếu đặt phòng hoặc chi tiết: " + e.getMessage());
+            return;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                }
+            } catch (SQLException e) {
+                showAlert("Lỗi", "Không thể khôi phục chế độ auto-commit: " + e.getMessage());
             }
         }
 
-        // Add PhieuDatPhong to DataManager
+        // Thêm PhieuDatPhong vào DataManager
         dataManager.addPhieuDatPhong(phieuDatPhong);
 
-        // Display booking confirmation
+        // Hiển thị thông tin xác nhận đặt phòng
         StringBuilder thongTinDatPhong = new StringBuilder();
         thongTinDatPhong.append("Thông tin đặt phòng:\n");
         thongTinDatPhong.append("Mã phiếu: ").append(maDatPhong).append("\n");

@@ -55,57 +55,13 @@ public class DataManager {
     }
 
     private void initializeSampleData() {
-        // Phong
-//        if (phongList.isEmpty()) {
-//            try {
-//                List<Phong> dsPhong = phongDao.getAllPhong();
-//                if (dsPhong != null && !dsPhong.isEmpty()) {
-//                    phongList.addAll(dsPhong);
-//                    System.out.println("Đã tải dữ liệu phòng từ cơ sở dữ liệu.");
-//                } else {
-//                    // Dữ liệu mẫu nếu DAO trả về null hoặc danh sách rỗng
-//                    phongList.addAll(
-//                        new Phong("P101", "Đơn", 300000.0, "Trống", true, "Tầng 1", 2, "Phòng đơn tiêu chuẩn"),
-//                        new Phong("P102", "Đôi", 500000.0, "Trống", true, "Tầng 2", 4, "Phòng đôi tiện nghi")
-//                    );
-//                    System.out.println("Không có dữ liệu từ phongDao, sử dụng dữ liệu mẫu cho Phong.");
-//                }
-//            } catch (Exception e) {
-//                // Xử lý ngoại lệ liên quan đến cơ sở dữ liệu
-//                System.err.println("Lỗi khi tải dữ liệu Phong từ DAO: " + e.getMessage());
-//                // Dùng dữ liệu mẫu nếu có lỗi
-//                phongList.addAll(
-//                    new Phong("P101", "Đơn", 300000.0, "Trống", true, "Tầng 1", 2, "Phòng đơn tiêu chuẩn"),
-//                    new Phong("P102", "Đôi", 500000.0, "Trống", true, "Tầng 2", 4, "Phòng đôi tiện nghi")
-//                );
-//                System.out.println("Đã xảy ra ngoại lệ, sử dụng dữ liệu mẫu cho Phong.");
-//            }
-//        }
 
-        // KhachHang
-        if (khachHangList.isEmpty()) {
-            try {
-                List<KhachHang> dsKhachHang = khachHangDao.getAllKhachHang();
-                if (dsKhachHang != null && !dsKhachHang.isEmpty()) {
-                    khachHangList.addAll(dsKhachHang);
-                    System.out.println("Đã tải dữ liệu khách hàng từ cơ sở dữ liệu.");
-                } else {
-                    khachHangList.addAll(
-                        new KhachHang("KH001", "Nguyễn Văn A", "0901234567", "nva@example.com", "123 Đường ABC", "123456789012", LocalDate.of(1990, 1, 1), "Việt Nam", "Nam"),
-                        new KhachHang("KH002", "Trần Thị B", "0912345678", "ttb@example.com", "456 Đường XYZ", "987654321098", LocalDate.of(1995, 5, 5), "Việt Nam", "Nữ")
-                    );
-                    System.out.println("Không có dữ liệu từ khachHangDao, sử dụng dữ liệu mẫu cho KhachHang.");
-                }
-            } catch (Exception e) {
-                System.err.println("Lỗi khi tải dữ liệu KhachHang từ DAO: " + e.getMessage());
-                khachHangList.addAll(
-                    new KhachHang("KH001", "Nguyễn Văn A", "0901234567", "nva@example.com", "123 Đường ABC", "123456789012", LocalDate.of(1990, 1, 1), "Việt Nam", "Nam"),
-                    new KhachHang("KH002", "Trần Thị B", "0912345678", "ttb@example.com", "456 Đường XYZ", "987654321098", LocalDate.of(1995, 5, 5), "Việt Nam", "Nữ")
-                );
-                System.out.println("Đã xảy ra ngoại lệ, sử dụng dữ liệu mẫu cho KhachHang.");
-            }
-        }
-
+    	 if (dichVuList.isEmpty()) {
+             List<DichVu> dsDichVu = dichVuDao.getAllDichVu();
+             if (dsDichVu != null) {
+                 dichVuList.addAll(dsDichVu);
+             }
+         }
         // NhanVien
         if (nhanVienList.isEmpty()) {
             nhanVienList.addAll(
@@ -114,85 +70,13 @@ public class DataManager {
             );
             System.out.println("Đã thêm dữ liệu mẫu cho NhanVien.");
         }
-
-        // DichVu
-        if (dichVuList.isEmpty()) {
-            try {
-                List<DichVu> dsDichVu = dichVuDao.getAllDichVu();
-                if (dsDichVu != null && !dsDichVu.isEmpty()) {
-                    dichVuList.addAll(dsDichVu);
-                    System.out.println("Đã tải dữ liệu dịch vụ từ cơ sở dữ liệu.");
-                } else {
-                    dichVuList.addAll(
-                        new DichVu("DV001", "Ăn sáng", 50000.0, true),
-                        new DichVu("DV002", "Giặt là", 30000.0, true)
-                    );
-                    System.out.println("Không có dữ liệu từ dichVuDao, sử dụng dữ liệu mẫu cho DichVu.");
-                }
-            } catch (Exception e) {
-                System.err.println("Lỗi khi tải dữ liệu DichVu từ DAO: " + e.getMessage());
-                dichVuList.addAll(
-                    new DichVu("DV001", "Ăn sáng", 50000.0, true),
-                    new DichVu("DV002", "Giặt là", 30000.0, true)
-                );
-                System.out.println("Đã xảy ra ngoại lệ, sử dụng dữ liệu mẫu cho DichVu.");
-            }
-        }
-
-        // ChuongTrinhKhuyenMai
+     // ChuongTrinhKhuyenMai
         if (khuyenMaiList.isEmpty()) {
-            try {
-                List<KhuyenMai> dsKhuyenMai = khuyenMaiDao.getAllKhuyenMai();
-                if (dsKhuyenMai != null && !dsKhuyenMai.isEmpty()) {
-                    khuyenMaiList.addAll(dsKhuyenMai);
-                    System.out.println("Đã tải dữ liệu khuyến mãi từ cơ sở dữ liệu.");
-                } else {
-                    khuyenMaiList.addAll(
-                        new KhuyenMai("KM001", "Giảm giá mùa hè", 20.0, true),
-                        new KhuyenMai("KM002", "Khuyến mãi cuối năm", 30.0, false)
-                    );
-                    System.out.println("Không có dữ liệu từ khuyenMaiDao, sử dụng dữ liệu mẫu cho KhuyenMai.");
-                }
-            } catch (Exception e) {
-                System.err.println("Lỗi khi tải dữ liệu KhuyenMai từ DAO: " + e.getMessage());
-                khuyenMaiList.addAll(
-                    new KhuyenMai("KM001", "Giảm giá mùa hè", 20.0, true),
-                    new KhuyenMai("KM002", "Khuyến mãi cuối năm", 30.0, false)
-                );
-                System.out.println("Đã xảy ra ngoại lệ, sử dụng dữ liệu mẫu cho KhuyenMai.");
+            List<KhuyenMai> dsKhuyenMai = khuyenMaiDao.getAllKhuyenMai();
+            if (dsKhuyenMai != null) {
+                khuyenMaiList.addAll(dsKhuyenMai);
             }
         }
-
-        // PhieuDatPhong
-        if (phieuDatPhongList.isEmpty()) {
-            try {
-                PhieuDatPhong phieu1 = new PhieuDatPhong(
-                    "DP001",
-                    LocalDate.now(),
-                    LocalDate.now().plusDays(2),
-                    LocalDate.now(),
-                    2,
-                    "Chưa xác nhận",
-                    "KH001"
-                );
-                phieu1.addChitietPhieuDatPhong(new ChitietPhieuDatPhong("P101", "DP001", 300000.0, 600000.0, 2));
-                PhieuDatPhong phieu2 = new PhieuDatPhong(
-                    "DP002",
-                    LocalDate.now().plusDays(1),
-                    LocalDate.now().plusDays(3),
-                    LocalDate.now(),
-                    4,
-                    "Xác nhận",
-                    "KH002"
-                );
-                phieu2.addChitietPhieuDatPhong(new ChitietPhieuDatPhong("P102", "DP002", 500000.0, 1000000.0, 2));
-                phieuDatPhongList.addAll(phieu1, phieu2);
-                System.out.println("Đã thêm dữ liệu mẫu cho PhieuDatPhong.");
-            } catch (Exception e) {
-                System.err.println("Lỗi khi khởi tạo dữ liệu mẫu PhieuDatPhong: " + e.getMessage());
-            }
-        }
-
         // HoaDon
         if (hoaDonList.isEmpty()) {
             try {
