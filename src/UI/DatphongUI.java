@@ -1,597 +1,707 @@
 package UI;
 
-import dao.KhachHang_Dao;
-import dao.Phong_Dao;
-import dao.PhieuDatPhong_Dao;
 import dao.ChitietPhieuDatPhong_Dao;
+import dao.KhachHang_Dao;
+import dao.PhieuDatPhong_Dao;
+import dao.Phong_Dao;
+import dao.HoaDon_Dao;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import model.ChitietPhieuDatPhong;
 import model.KhachHang;
 import model.PhieuDatPhong;
 import model.Phong;
+import model.HoaDon;
+import ConnectDB.ConnectDB;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
-import connectDB.ConnectDB;
-
 public class DatphongUI {
-    private TableView<Phong> tablePhongTrong;
-    private TableView<Phong> tablePhongDaChon;
-    private ObservableList<Phong> phongTrongList;
-    private ObservableList<Phong> phongDaChonList;
-    private ObservableList<Phong> allPhongList;
-    private final Phong_Dao phongDao;
-    private final KhachHang_Dao khachHangDao;
-    private final PhieuDatPhong_Dao phieuDatPhongDao;
-    private final ChitietPhieuDatPhong_Dao chitietPhieuDatPhongDao;
-
-    private TextField tfHoTen, tfCCCD, tfDiaChi, tfSDT, tfQuocTich, tfEmail, tfSoLuongNguoi;
-    private ComboBox<String> cbGioiTinh;
+    private final DataManager dataManager = DataManager.getInstance();
+    private final ObservableList<Phong> phongList = dataManager.getPhongList();
+    private final ObservableList<KhachHang> khachHangList = dataManager.getKhachHangList();
+    private final ObservableList<PhieuDatPhong> phieuDatPhongList = dataManager.getPhieuDatPhongList();
+    private final ObservableList<ChitietPhieuDatPhong> chitietPhieuDatPhongList = dataManager.getChitietPhieuDatPhongList();
+    private final ObservableList<Phong> phongTrongList = FXCollections.observableArrayList();
+    private final ObservableList<Phong> phongDaChonList = FXCollections.observableArrayList();
+    private TextField tfHoTen;
+    private TextField tfCCCD;
+    private TextField tfSDT;
+    private TextField tfEmail;
+    private TextField tfDiaChi;
+    private TextField tfQuocTich;
     private DatePicker dpNgaySinh;
+    private ComboBox<String> cbGioiTinh;
+    private DatePicker dpNgayDen;
+    private DatePicker dpNgayDi;
+    private TextField tfSoLuongNguoi;
+    private TextField tfTimKiem;
+    private TableView<Phong> tvPhongTrong;
+    private TableView<Phong> tvPhongDaChon;
+    private final KhachHang_Dao khachHangDao = new KhachHang_Dao();
+    private final Phong_Dao phongDao = new Phong_Dao();
+    private final PhieuDatPhong_Dao phieuDatPhongDao = new PhieuDatPhong_Dao();
+    private final ChitietPhieuDatPhong_Dao chitietPhieuDatPhongDao = new ChitietPhieuDatPhong_Dao();
+    private final HoaDon_Dao hoaDonDao = new HoaDon_Dao();
+    private StackPane contentPane;
+    private StackPane mainPane;
 
     public DatphongUI() {
-        try {
-            phongDao = new Phong_Dao();
-            khachHangDao = new KhachHang_Dao();
-            phieuDatPhongDao = new PhieuDatPhong_Dao();
-            chitietPhieuDatPhongDao = new ChitietPhieuDatPhong_Dao();
-            allPhongList = FXCollections.observableArrayList(phongDao.getAllPhong());
-        } catch (Exception e) {
-            throw new RuntimeException("Không thể kết nối tới cơ sở dữ liệu!", e);
-        }
-        DataManager dataManager = DataManager.getInstance();
-        dataManager.setPhongList(allPhongList);
-        phongTrongList = FXCollections.observableArrayList();
-        phongDaChonList = FXCollections.observableArrayList();
-
-        updatePhongTrongList();
-
-        dataManager.addPhongListChangeListener(this::updatePhongTrongList);
+        this.contentPane = new StackPane();
+        this.mainPane = createMainPane();
     }
 
-    public StackPane getUI() {
-        StackPane root = new StackPane();
-        BorderPane layout = new BorderPane();
+    private StackPane createMainPane() {
+        StackPane mainPane = new StackPane();
+        mainPane.setStyle("-fx-background-color: #f0f0f0;");
 
+        // User info display
         HBox userInfoBox;
         try {
             userInfoBox = UserInfoBox.createUserInfoBox();
         } catch (Exception e) {
-            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox = new HBox(new Label("Chưa đăng nhập"));
             userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
         }
         userInfoBox.setPrefSize(200, 50);
         userInfoBox.setMaxSize(200, 50);
-        layout.setTop(userInfoBox);
-        BorderPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
-        BorderPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
-        VBox customerInfo = new VBox(20);
-        customerInfo.setPadding(new Insets(20));
+        // Header
+        HBox header = new HBox();
+        header.setPadding(new Insets(10));
+        header.setStyle("-fx-background-color: #f0f0f0;");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        header.getChildren().addAll(spacer, userInfoBox);
+
+        // Search bar
+        tfTimKiem = new TextField();
+        tfTimKiem.setPromptText("Tìm kiếm phòng (mã, loại, vị trí)...");
+        tfTimKiem.setPrefWidth(300);
+        tfTimKiem.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
+
+        Button searchButton = new Button("Tìm kiếm");
+        searchButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+
+        HBox searchBox = new HBox(10, new Label("Tìm kiếm:"), tfTimKiem, searchButton);
+        searchBox.setAlignment(Pos.CENTER);
+        searchBox.setPadding(new Insets(10));
+
+        searchButton.setOnAction(e -> updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue()));
+        tfTimKiem.setOnAction(e -> searchButton.fire());
+
+        // Customer Info
+        VBox customerInfo = new VBox(10);
         customerInfo.setAlignment(Pos.TOP_LEFT);
 
-        HBox hboxHoTen = createInputFieldWithoutIcon("Nhập Họ Tên");
-        tfHoTen = (TextField) hboxHoTen.getChildren().get(0);
+        tfHoTen = createTextField("Nhập Họ Tên");
+        tfCCCD = createTextField("Nhập CCCD/passport");
+        tfDiaChi = createTextField("Nhập Địa Chỉ");
+        tfSDT = createTextField("Nhập SĐT");
+        tfQuocTich = createTextField("Nhập Quốc Tịch");
+        tfEmail = createTextField("Nhập Email");
 
-        HBox hboxCCCD = createInputFieldWithoutIcon("Nhập CCCD/passport");
-        tfCCCD = (TextField) hboxCCCD.getChildren().get(0);
-
-        HBox hboxDiaChi = createInputFieldWithoutIcon("Nhập Địa Chỉ");
-        tfDiaChi = (TextField) hboxDiaChi.getChildren().get(0);
-
-        HBox hboxSDT = createInputFieldWithoutIcon("Nhập SĐT");
-        tfSDT = (TextField) hboxSDT.getChildren().get(0);
-
-        HBox hboxQuocTich = createInputFieldWithoutIcon("Nhập Quốc Tịch");
-        tfQuocTich = (TextField) hboxQuocTich.getChildren().get(0);
-
-        HBox hboxEmail = createInputFieldWithoutIcon("Nhập Email");
-        tfEmail = (TextField) hboxEmail.getChildren().get(0);
-
-        HBox hboxSoLuongNguoi = createInputFieldWithoutIcon("Nhập Số Lượng Người");
-        tfSoLuongNguoi = (TextField) hboxSoLuongNguoi.getChildren().get(0);
+        tfSoLuongNguoi = createTextField("Nhập Số Lượng Người");
         tfSoLuongNguoi.textProperty().addListener((obs, oldValue, newValue) -> {
             if (!newValue.matches("\\d*")) {
                 tfSoLuongNguoi.setText(newValue.replaceAll("[^\\d]", ""));
             }
         });
 
-        HBox hboxGioiTinh = new HBox(10);
-        hboxGioiTinh.setAlignment(Pos.CENTER_LEFT);
         cbGioiTinh = new ComboBox<>(FXCollections.observableArrayList("Nam", "Nữ", "Khác"));
         cbGioiTinh.setPromptText("Chọn Giới Tính");
         cbGioiTinh.setPrefWidth(250);
-        hboxGioiTinh.getChildren().add(cbGioiTinh);
+        cbGioiTinh.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
-        HBox hboxNgaySinh = new HBox(10);
-        hboxNgaySinh.setAlignment(Pos.CENTER_LEFT);
         dpNgaySinh = new DatePicker();
         dpNgaySinh.setPromptText("Chọn Ngày Sinh");
         dpNgaySinh.setPrefWidth(250);
-        hboxNgaySinh.getChildren().add(dpNgaySinh);
+        dpNgaySinh.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
-        customerInfo.getChildren().addAll(hboxHoTen, hboxCCCD, hboxDiaChi, hboxSDT, hboxQuocTich, hboxEmail, hboxSoLuongNguoi, hboxGioiTinh, hboxNgaySinh);
+        customerInfo.getChildren().addAll(tfHoTen, tfCCCD, tfDiaChi, tfSDT, tfQuocTich, tfEmail,
+                tfSoLuongNguoi, cbGioiTinh, dpNgaySinh);
 
-        tfSDT.textProperty().addListener((obs, oldValue, newValue) -> checkExistingCustomerBySDT(newValue));
-        tfCCCD.textProperty().addListener((obs, oldValue, newValue) -> checkExistingCustomerByCCCD(newValue));
-
-        VBox roomInfo = new VBox(15);
-        roomInfo.setPadding(new Insets(25));
+        // Room Info
+        VBox roomInfo = new VBox(10);
         roomInfo.setAlignment(Pos.TOP_LEFT);
 
-        GridPane dateTimeLayout = new GridPane();
-        dateTimeLayout.setHgap(15);
-        dateTimeLayout.setVgap(15);
-        dateTimeLayout.setPadding(new Insets(0, 0, 15, 0));
+        dpNgayDen = new DatePicker(LocalDate.now());
+        dpNgayDen.setPromptText("Chọn Ngày Đến");
+        dpNgayDen.setPrefWidth(250);
+        dpNgayDen.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
+        HBox hboxNgayDen = new HBox(10, new Label("Ngày đến:"), dpNgayDen);
+        hboxNgayDen.setAlignment(Pos.CENTER_LEFT);
 
-        Label labelNgayDen = new Label("Ngày đến");
-        DatePicker dpNgayDen = new DatePicker(LocalDate.now());
+        dpNgayDi = new DatePicker(LocalDate.now().plusDays(1));
+        dpNgayDi.setPromptText("Chọn Ngày Đi");
+        dpNgayDi.setPrefWidth(250);
+        dpNgayDi.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
+        HBox hboxNgayDi = new HBox(10, new Label("Ngày đi:"), dpNgayDi);
+        hboxNgayDi.setAlignment(Pos.CENTER_LEFT);
 
-        Label labelNgayDi = new Label("Ngày đi");
-        DatePicker dpNgayDi = new DatePicker(LocalDate.now().plusDays(1));
+        VBox dateLayout = new VBox(10, hboxNgayDen, hboxNgayDi);
 
-        Label labelGioDen = new Label("Giờ đến");
-        ComboBox<String> cbGioDen = new ComboBox<>();
-        cbGioDen.getItems().addAll("08:00 AM", "12:00 PM", "02:00 PM", "06:00 PM");
-        cbGioDen.setValue("12:00 PM");
+        tvPhongTrong = new TableView<>();
+        tvPhongTrong.setEditable(true);
+        tvPhongTrong.setItems(phongTrongList);
+        tvPhongTrong.setPrefWidth(450);
+        tvPhongTrong.setPrefHeight(200);
 
-        Label labelGioDi = new Label("Giờ đi");
-        ComboBox<String> cbGioDi = new ComboBox<>();
-        cbGioDi.getItems().addAll("08:00 AM", "12:00 PM", "02:00 PM", "06:00 PM");
-        cbGioDi.setValue("12:00 PM");
-
-        dateTimeLayout.add(labelNgayDen, 0, 0);
-        dateTimeLayout.add(dpNgayDen, 1, 0);
-        dateTimeLayout.add(labelGioDen, 2, 0);
-        dateTimeLayout.add(cbGioDen, 3, 0);
-
-        dateTimeLayout.add(labelNgayDi, 0, 1);
-        dateTimeLayout.add(dpNgayDi, 1, 1);
-        dateTimeLayout.add(labelGioDi, 2, 1);
-        dateTimeLayout.add(cbGioDi, 3, 1);
-
-        tablePhongTrong = new TableView<>();
-        tablePhongTrong.setEditable(true);
-        tablePhongTrong.setItems(phongTrongList);
-
-        TableColumn<Phong, String> colMaPhong = new TableColumn<>("Mã phòng");
+        TableColumn<Phong, String> colMaPhong = new TableColumn<>("Mã Phòng");
         colMaPhong.setCellValueFactory(cellData -> cellData.getValue().maPhongProperty());
         colMaPhong.setPrefWidth(100);
 
-        TableColumn<Phong, String> colLoaiPhong = new TableColumn<>("Loại phòng");
+        TableColumn<Phong, String> colLoaiPhong = new TableColumn<>("Loại Phòng");
         colLoaiPhong.setCellValueFactory(cellData -> cellData.getValue().loaiPhongProperty());
         colLoaiPhong.setPrefWidth(100);
 
         TableColumn<Phong, String> colGiaPhong = new TableColumn<>("Giá (VNĐ)");
-        colGiaPhong.setCellValueFactory(cellData -> new SimpleStringProperty(String.format("%,.0f", cellData.getValue().getGiaPhong())));
+        colGiaPhong.setCellValueFactory(
+                cellData -> new SimpleStringProperty(String.format("%,.0f", cellData.getValue().getGiaPhong())));
         colGiaPhong.setPrefWidth(100);
+
+        TableColumn<Phong, String> colSoNguoiToiDa = new TableColumn<>("Số Người Tối Đa");
+        colSoNguoiToiDa.setCellValueFactory(
+                cellData -> new SimpleStringProperty(String.valueOf(cellData.getValue().getSoNguoiToiDa())));
+        colSoNguoiToiDa.setPrefWidth(100);
 
         TableColumn<Phong, String> colThem = new TableColumn<>("Thêm");
         colThem.setCellFactory(column -> new TableCell<Phong, String>() {
+            private final Button btnThem = new Button("Thêm");
+            {
+                btnThem.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+            }
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || getTableRow() == null || getTableRow().getItem() == null) {
                     setGraphic(null);
                 } else {
-                    Phong phong = getTableRow().getItem();
-                    Button btnThem = new Button("Thêm");
-                    btnThem.setOnAction(e -> {
-                        phongDaChonList.add(phong);
-                        updatePhongTrongList();
-                        tablePhongTrong.refresh();
-                    });
-                    HBox hbox = new HBox(btnThem);
-                    hbox.setAlignment(Pos.CENTER);
-                    setGraphic(hbox);
+                    btnThem.setOnAction(e -> handleAddPhong(getTableRow().getItem()));
+                    setGraphic(btnThem);
                 }
             }
         });
         colThem.setPrefWidth(100);
 
-        tablePhongTrong.getColumns().addAll(colMaPhong, colLoaiPhong, colGiaPhong, colThem);
+        tvPhongTrong.getColumns().addAll(colMaPhong, colLoaiPhong, colGiaPhong, colSoNguoiToiDa, colThem);
 
-        tablePhongDaChon = new TableView<>();
-        tablePhongDaChon.setEditable(true);
-        tablePhongDaChon.setItems(phongDaChonList);
+        tvPhongDaChon = new TableView<>();
+        tvPhongDaChon.setEditable(true);
+        tvPhongDaChon.setItems(phongDaChonList);
+        tvPhongDaChon.setPrefWidth(450);
+        tvPhongDaChon.setPrefHeight(200);
 
-        TableColumn<Phong, String> colPhongDaChonMa = new TableColumn<>("Mã phòng");
+        TableColumn<Phong, String> colPhongDaChonMa = new TableColumn<>("Mã Phòng");
         colPhongDaChonMa.setCellValueFactory(cellData -> cellData.getValue().maPhongProperty());
         colPhongDaChonMa.setPrefWidth(100);
 
-        TableColumn<Phong, String> colPhongDaChonLoai = new TableColumn<>("Loại phòng");
+        TableColumn<Phong, String> colPhongDaChonLoai = new TableColumn<>("Loại Phòng");
         colPhongDaChonLoai.setCellValueFactory(cellData -> cellData.getValue().loaiPhongProperty());
         colPhongDaChonLoai.setPrefWidth(100);
 
-        TableColumn<Phong, String> colSoLuongNguoi = new TableColumn<>("Số lượng người");
-        colSoLuongNguoi.setCellFactory(column -> new TableCell<Phong, String>() {
-            private final TextField soLuongNguoiField = new TextField("1");
-
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setGraphic(null);
-                } else {
-                    Phong phong = getTableRow().getItem();
-                    soLuongNguoiField.setText(String.valueOf(phong.getSoNguoiToiDa()));
-                    soLuongNguoiField.textProperty().addListener((obs, oldVal, newVal) -> {
-                        if (!newVal.matches("\\d*")) {
-                            soLuongNguoiField.setText(oldVal);
-                        } else if (!newVal.isEmpty()) {
-                            int value = Integer.parseInt(newVal);
-                            if (value <= phong.getSoNguoiToiDa()) {
-                                phong.setSoNguoiToiDa(value);
-                            } else {
-                                soLuongNguoiField.setText(String.valueOf(phong.getSoNguoiToiDa()));
-                            }
-                        }
-                    });
-                    soLuongNguoiField.setPrefWidth(80);
-                    setGraphic(soLuongNguoiField);
-                }
-            }
-        });
-        colSoLuongNguoi.setPrefWidth(120);
+        TableColumn<Phong, String> colPhongDaChonSoNguoi = new TableColumn<>("Số Người Tối Đa");
+        colPhongDaChonSoNguoi.setCellValueFactory(
+                cellData -> new SimpleStringProperty(String.valueOf(cellData.getValue().getSoNguoiToiDa())));
+        colPhongDaChonSoNguoi.setPrefWidth(120);
 
         TableColumn<Phong, String> colXoa = new TableColumn<>("Xóa");
         colXoa.setCellFactory(column -> new TableCell<Phong, String>() {
+            private final Button btnXoa = new Button("Xóa");
+            {
+                btnXoa.setStyle("-fx-background-color: #FF0000; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+            }
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || getTableRow() == null || getTableRow().getItem() == null) {
                     setGraphic(null);
                 } else {
-                    Phong phong = getTableRow().getItem();
-                    Button btnXoa = new Button("Xóa");
-                    btnXoa.setOnAction(e -> {
-                        phongDaChonList.remove(phong);
-                        updatePhongTrongList();
-                        tablePhongTrong.refresh();
-                    });
-                    HBox hbox = new HBox(btnXoa);
-                    hbox.setAlignment(Pos.CENTER);
-                    setGraphic(hbox);
+                    btnXoa.setOnAction(e -> handleRemovePhong(getTableRow().getItem()));
+                    setGraphic(btnXoa);
                 }
             }
         });
         colXoa.setPrefWidth(100);
 
-        tablePhongDaChon.getColumns().addAll(colPhongDaChonMa, colPhongDaChonLoai, colSoLuongNguoi, colXoa);
+        tvPhongDaChon.getColumns().addAll(colPhongDaChonMa, colPhongDaChonLoai, colPhongDaChonSoNguoi, colXoa);
 
-        tablePhongTrong.setPrefWidth(400);
-        tablePhongDaChon.setPrefWidth(400);
-        tablePhongTrong.setPrefHeight(200);
-        tablePhongDaChon.setPrefHeight(200);
-
-        HBox tableLayout = new HBox(40, tablePhongTrong, tablePhongDaChon);
+        HBox tableLayout = new HBox(20, tvPhongTrong, tvPhongDaChon);
         tableLayout.setAlignment(Pos.CENTER);
-        tableLayout.setPadding(new Insets(20));
 
-        roomInfo.getChildren().addAll(dateTimeLayout, tableLayout);
+        roomInfo.getChildren().addAll(dateLayout, tableLayout);
+
+        HBox contentLayout = new HBox(20, customerInfo, roomInfo);
+        contentLayout.setAlignment(Pos.TOP_CENTER);
 
         Button btnLuu = new Button("Lưu");
-        btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
-        btnLuu.setOnAction(e -> handleSave(dpNgayDen, dpNgayDi, cbGioDen, cbGioDi));
+        btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+        btnLuu.setOnAction(e -> handleSave());
 
         Button btnHuy = new Button("Hủy");
-        btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
-        btnHuy.setOnAction(e -> handleCancel());
+        btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+        btnHuy.setOnAction(e -> clearInputFields());
 
         HBox buttonLayout = new HBox(20, btnLuu, btnHuy);
         buttonLayout.setAlignment(Pos.CENTER);
         buttonLayout.setPadding(new Insets(10));
 
-        GridPane gridLayout = new GridPane();
-        gridLayout.setPadding(new Insets(10));
-        gridLayout.setVgap(10);
-        gridLayout.setHgap(20);
-        gridLayout.add(customerInfo, 0, 0);
-        gridLayout.add(roomInfo, 1, 0);
+        // Center layout
+        VBox centerLayout = new VBox(15, searchBox, contentLayout, buttonLayout);
+        centerLayout.setPadding(new Insets(20));
+        centerLayout.setAlignment(Pos.TOP_CENTER);
+        centerLayout.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
+                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
 
-        VBox layoutMain = new VBox(20, gridLayout, buttonLayout);
-        layoutMain.setAlignment(Pos.TOP_CENTER);
+        BorderPane layout = new BorderPane();
+        layout.setTop(header);
+        layout.setCenter(centerLayout);
+        layout.setPadding(new Insets(10));
 
-        layout.setCenter(layoutMain);
-        root.getChildren().add(layout);
-        return root;
-    }
+        mainPane.getChildren().add(layout);
 
-    private HBox createInputFieldWithoutIcon(String labelText) {
-        TextField textField = new TextField();
-        textField.setPromptText(labelText);
-        textField.setPrefWidth(250);
-        HBox hbox = new HBox(10, textField);
-        hbox.setAlignment(Pos.CENTER_LEFT);
-        return hbox;
-    }
-
-    private void checkExistingCustomerBySDT(String sdt) {
-        if (sdt.matches("0\\d{9}")) {
-            try {
-                KhachHang existingCustomer = khachHangDao.getKhachHangBySDT(sdt);
-                if (existingCustomer != null) {
-                    fillCustomerInfo(existingCustomer);
+        // Initialize listeners
+        tfSDT.textProperty().addListener((obs, oldValue, newValue) -> {
+            if (newValue != null && !newValue.trim().isEmpty()) {
+                try {
+                    KhachHang existingCustomer = khachHangDao.getKhachHangBySDT(newValue.trim());
+                    if (existingCustomer != null) {
+                        fillCustomerInfo(existingCustomer);
+                    }
+                } catch (SQLException e) {
+                    showAlert("Lỗi", "Không thể kiểm tra khách hàng theo SĐT: " + e.getMessage());
                 }
-            } catch (SQLException e) {
-                showAlert("Lỗi", "Không thể kiểm tra khách hàng theo SĐT: " + e.getMessage());
             }
-        }
-    }
+        });
 
-    private void checkExistingCustomerByCCCD(String cccd) {
-        if (cccd.matches("\\d{12}")) {
-            try {
-                KhachHang existingCustomer = khachHangDao.getKhachHangByCCCD(cccd);
-                if (existingCustomer != null) {
-                    fillCustomerInfo(existingCustomer);
+        tfCCCD.textProperty().addListener((obs, oldValue, newValue) -> {
+            if (newValue != null && !newValue.trim().isEmpty()) {
+                try {
+                    KhachHang existingCustomer = khachHangDao.getKhachHangByCCCD(newValue.trim());
+                    if (existingCustomer != null) {
+                        fillCustomerInfo(existingCustomer);
+                    }
+                } catch (SQLException e) {
+                    showAlert("Lỗi", "Không thể kiểm tra khách hàng theo CCCD: " + e.getMessage());
                 }
-            } catch (SQLException e) {
-                showAlert("Lỗi", "Không thể kiểm tra khách hàng theo CCCD: " + e.getMessage());
             }
-        }
+        });
+
+        tfTimKiem.textProperty().addListener((obs, oldValue, newValue) ->
+                updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue()));
+
+        updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue());
+
+        dataManager.addPhongListChangeListener(() -> updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue()));
+        dataManager.addPhieuDatPhongListChangeListener(() -> updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue()));
+        dataManager.addChitietPhieuDatPhongListChangeListener(() -> updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue()));
+
+        dpNgayDen.valueProperty().addListener((obs, oldValue, newValue) -> updatePhongTrongList(newValue, dpNgayDi.getValue()));
+        dpNgayDi.valueProperty().addListener((obs, oldValue, newValue) -> updatePhongTrongList(dpNgayDen.getValue(), newValue));
+
+        return mainPane;
     }
 
-    private void fillCustomerInfo(KhachHang customer) {
-        tfHoTen.setText(customer.getTenKhachHang());
-        tfCCCD.setText(customer.getCccd());
-        tfDiaChi.setText(customer.getDiaChi());
-        tfSDT.setText(customer.getSoDienThoai());
-        tfQuocTich.setText(customer.getQuocTich());
-        tfEmail.setText(customer.getEmail());
-        cbGioiTinh.setValue(customer.getGioiTinh());
-        dpNgaySinh.setValue(customer.getNgaySinh());
+    public Node getUI() {
+        contentPane.getChildren().setAll(mainPane);
+        return contentPane;
     }
 
-    private void updatePhongTrongList() {
-        phongTrongList.clear();
-        for (Phong phong : allPhongList) {
-            if ("Trống".equals(phong.getTrangThai()) && !phongDaChonList.contains(phong)) {
-                phongTrongList.add(phong);
-            }
-        }
-        if (tablePhongTrong != null) {
-            tablePhongTrong.refresh();
-        }
-    }
-
-    private void handleCancel() {
-        tfHoTen.clear();
-        tfCCCD.clear();
-        tfDiaChi.clear();
-        tfSDT.clear();
-        tfQuocTich.clear();
-        tfEmail.clear();
-        tfSoLuongNguoi.clear();
-        cbGioiTinh.setValue(null);
-        dpNgaySinh.setValue(null);
-
-        phongDaChonList.clear();
-        updatePhongTrongList();
-        tablePhongTrong.refresh();
-        tablePhongDaChon.refresh();
-    }
-
-    private void handleSave(DatePicker dpNgayDen, DatePicker dpNgayDi, ComboBox<String> cbGioDen, ComboBox<String> cbGioDi) {
-        String sdt = tfSDT.getText();
-        String cccd = tfCCCD.getText();
-        String email = tfEmail.getText();
-        String soLuongNguoiText = tfSoLuongNguoi.getText();
-        LocalDate ngayDen = dpNgayDen.getValue();
-        LocalDate ngayDi = dpNgayDi.getValue();
-        LocalDate ngaySinh = dpNgaySinh.getValue();
-        String gioiTinh = cbGioiTinh.getValue();
-
-        // Kiểm tra các trường bắt buộc trước khi lưu
-        if (soLuongNguoiText.isEmpty()) {
-            showAlert("Lỗi", "Số lượng người không được để trống.");
+    public void showUI(Stage primaryStage) {
+        if (primaryStage == null) {
+            showAlert("Lỗi", "Không thể khởi tạo giao diện: primaryStage là null.");
             return;
         }
 
-        if (tfHoTen.getText().isEmpty()) {
+        Stage dialogStage = new Stage();
+        try {
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.initOwner(primaryStage);
+            dialogStage.setTitle("Đặt Phòng");
+
+            Node ui = getUI();
+            Scene scene = new Scene((Region) ui, 1000, 650);
+            dialogStage.setScene(scene);
+            dialogStage.showAndWait();
+        } catch (Exception e) {
+            showAlert("Lỗi", "Không thể khởi tạo giao diện: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private TextField createTextField(String promptText) {
+        TextField textField = new TextField();
+        textField.setPromptText(promptText);
+        textField.setPrefWidth(250);
+        textField.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
+        return textField;
+    }
+
+    private void fillCustomerInfo(KhachHang customer) {
+        tfHoTen.setText(customer.getTenKhachHang() != null ? customer.getTenKhachHang() : "");
+        tfCCCD.setText(customer.getCccd() != null ? customer.getCccd() : "");
+        tfDiaChi.setText(customer.getDiaChi() != null ? customer.getDiaChi() : "");
+        tfSDT.setText(customer.getSoDienThoai() != null ? customer.getSoDienThoai() : "");
+        tfQuocTich.setText(customer.getQuocTich() != null ? customer.getQuocTich() : "");
+        tfEmail.setText(customer.getEmail() != null ? customer.getEmail() : "");
+        cbGioiTinh.setValue(customer.getGioiTinh() != null ? customer.getGioiTinh() : null);
+        dpNgaySinh.setValue(customer.getNgaySinh());
+    }
+
+    private void updatePhongTrongList(LocalDate ngayDen, LocalDate ngayDi) {
+        phongTrongList.clear();
+        String searchText = tfTimKiem != null ? tfTimKiem.getText().trim().toLowerCase() : "";
+
+        for (Phong phong : phongList) {
+            if (!"Trống".equalsIgnoreCase(phong.getTrangThai())) {
+                continue;
+            }
+
+            boolean isAvailable = true;
+            for (ChitietPhieuDatPhong chitiet : chitietPhieuDatPhongList) {
+                if (chitiet.getMaPhong().equals(phong.getMaPhong())) {
+                    PhieuDatPhong phieu = phieuDatPhongList.stream()
+                            .filter(p -> p.getMaDatPhong().equals(chitiet.getMaDatPhong()))
+                            .findFirst()
+                            .orElse(null);
+                    if (phieu != null && !"Đã hủy".equalsIgnoreCase(phieu.getTrangThai())) {
+                        LocalDate phieuNgayDen = phieu.getNgayDen();
+                        LocalDate phieuNgayDi = phieu.getNgayDi();
+                        if (ngayDen != null && ngayDi != null && phieuNgayDen != null && phieuNgayDi != null) {
+                            if (!(ngayDi.isBefore(phieuNgayDen) || ngayDen.isAfter(phieuNgayDi))) {
+                                isAvailable = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (isAvailable) {
+                if (searchText.isEmpty() ||
+                        phong.getMaPhong().toLowerCase().contains(searchText) ||
+                        phong.getLoaiPhong().toLowerCase().contains(searchText) ||
+                        (phong.getViTri() != null && phong.getViTri().toLowerCase().contains(searchText))) {
+                    phongTrongList.add(phong);
+                }
+            }
+        }
+    }
+
+    private void handleAddPhong(Phong selectedPhong) {
+        if (selectedPhong == null) {
+            showAlert("Lỗi", "Vui lòng chọn một phòng từ danh sách phòng trống.");
+            return;
+        }
+
+        if (!phongDaChonList.contains(selectedPhong) && "Trống".equalsIgnoreCase(selectedPhong.getTrangThai())) {
+            phongDaChonList.add(selectedPhong);
+            phongTrongList.remove(selectedPhong);
+        } else {
+            showAlert("Lỗi", "Phòng đã được chọn hoặc không còn trống.");
+        }
+    }
+
+    private void handleRemovePhong(Phong selectedPhong) {
+        if (selectedPhong == null) {
+            showAlert("Lỗi", "Vui lòng chọn một phòng từ danh sách phòng đã chọn.");
+            return;
+        }
+
+        phongDaChonList.remove(selectedPhong);
+        if ("Trống".equalsIgnoreCase(selectedPhong.getTrangThai())) {
+            phongTrongList.add(selectedPhong);
+        }
+    }
+
+    private void handleSave() {
+        String hoTen = tfHoTen.getText().trim();
+        String cccd = tfCCCD.getText().trim();
+        String sdt = tfSDT.getText().trim();
+        String email = tfEmail.getText().trim();
+        String diaChi = tfDiaChi.getText().trim();
+        String quocTich = tfQuocTich.getText().trim();
+        LocalDate ngaySinh = dpNgaySinh.getValue();
+        String gioiTinh = cbGioiTinh.getValue();
+        LocalDate ngayDen = dpNgayDen.getValue();
+        LocalDate ngayDi = dpNgayDi.getValue();
+        String soLuongNguoiStr = tfSoLuongNguoi.getText().trim();
+
+        // Validation
+        if (hoTen.isEmpty()) {
             showAlert("Lỗi", "Họ tên không được để trống.");
             return;
         }
 
-        if (!sdt.matches("0\\d{9}")) {
-            showAlert("Lỗi", "SĐT phải có đúng 10 số và bắt đầu bằng 0.");
+        if (sdt.isEmpty()) {
+            showAlert("Lỗi", "Số điện thoại không được để trống.");
             return;
         }
 
-        if (!cccd.matches("\\d{12}")) {
-            showAlert("Lỗi", "CCCD phải có đúng 12 số.");
+        if (!sdt.matches("\\d{10,11}")) {
+            showAlert("Lỗi", "Số điện thoại không hợp lệ. Vui lòng nhập 10 hoặc 11 số.");
             return;
         }
 
-        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            showAlert("Lỗi", "Email không hợp lệ.");
+        if (!cccd.isEmpty() && !cccd.matches("\\d{9,12}")) {
+            showAlert("Lỗi", "CCCD không hợp lệ. Vui lòng nhập 9-12 số hoặc để trống.");
             return;
         }
 
-        if (tfDiaChi.getText().isEmpty() || tfQuocTich.getText().isEmpty()) {
-            showAlert("Lỗi", "Địa chỉ và quốc tịch không được để trống.");
+        if (!email.isEmpty() && !email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+            showAlert("Lỗi", "Email không hợp lệ. Vui lòng nhập đúng định dạng hoặc để trống.");
             return;
         }
 
-        if (gioiTinh == null || ngaySinh == null || ngayDen == null || ngayDi == null ||
-                cbGioDen.getValue() == null || cbGioDi.getValue() == null || phongDaChonList.isEmpty()) {
-            showAlert("Lỗi", "Vui lòng nhập đầy đủ thông tin và chọn ít nhất một phòng.");
+        if (ngayDen == null || ngayDi == null) {
+            showAlert("Lỗi", "Ngày đến và ngày đi không được để trống.");
             return;
         }
 
-        if (!ngayDi.isAfter(ngayDen)) {
-            showAlert("Lỗi", "Ngày đi phải lớn hơn ngày đến.");
+        if (ngayDi.isBefore(ngayDen) || ngayDi.isEqual(ngayDen)) {
+            showAlert("Lỗi", "Ngày đi phải sau ngày đến.");
             return;
         }
 
-        if (ngaySinh.isAfter(LocalDate.now().minusYears(18))) {
-            showAlert("Lỗi", "Khách hàng phải trên 18 tuổi.");
+        if (soLuongNguoiStr.isEmpty()) {
+            showAlert("Lỗi", "Số lượng người không được để trống.");
             return;
         }
 
         int soLuongNguoi;
         try {
-            soLuongNguoi = Integer.parseInt(soLuongNguoiText);
+            soLuongNguoi = Integer.parseInt(soLuongNguoiStr);
             if (soLuongNguoi <= 0) {
                 showAlert("Lỗi", "Số lượng người phải lớn hơn 0.");
                 return;
             }
         } catch (NumberFormatException e) {
-            showAlert("Lỗi", "Số lượng người phải là số hợp lệ.");
+            showAlert("Lỗi", "Số lượng người không hợp lệ. Vui lòng nhập số nguyên.");
             return;
         }
 
-        DataManager dataManager = DataManager.getInstance();
-        ObservableList<KhachHang> khachHangList = dataManager.getKhachHangList();
-
-        // Xử lý khách hàng
-        KhachHang khachHang;
-        try {
-            KhachHang existingCustomer = khachHangDao.getKhachHangBySDT(sdt);
-            if (existingCustomer != null) {
-                khachHang = existingCustomer;
-            } else {
-                khachHang = new KhachHang(
-                        "KH" + String.format("%03d", khachHangList.size() + 1),
-                        tfHoTen.getText(),
-                        tfSDT.getText(),
-                        tfEmail.getText(),
-                        tfDiaChi.getText(),
-                        tfCCCD.getText(),
-                        dpNgaySinh.getValue(),
-                        tfQuocTich.getText(),
-                        cbGioiTinh.getValue()
-                );
-                khachHangDao.themKhachHang(khachHang);
-                dataManager.addKhachHang(khachHang);
-            }
-        } catch (SQLException e) {
-            showAlert("Lỗi", "Không thể lưu hoặc kiểm tra thông tin khách hàng: " + e.getMessage());
+        if (phongDaChonList.isEmpty()) {
+            showAlert("Lỗi", "Vui lòng chọn ít nhất một phòng.");
             return;
         }
 
-        // Tạo mã đặt phòng tự động
-        String maDatPhong;
-        try {
-            maDatPhong = phieuDatPhongDao.getNextMaDatPhong();
-        } catch (SQLException e) {
-            showAlert("Lỗi", "Không thể tạo mã đặt phòng: " + e.getMessage());
+        int totalSoNguoiToiDa = phongDaChonList.stream().mapToInt(Phong::getSoNguoiToiDa).sum();
+        if (soLuongNguoi > totalSoNguoiToiDa) {
+            showAlert("Lỗi", "Số lượng người vượt quá sức chứa tối đa của các phòng đã chọn (" + totalSoNguoiToiDa + " người).");
             return;
         }
 
-        // Tạo PhieuDatPhong
-        PhieuDatPhong phieuDatPhong = new PhieuDatPhong(
-                maDatPhong,
-                ngayDen,
-                ngayDi,
-                LocalDate.now(),
-                soLuongNguoi,
-                "Chưa xác nhận",
-                khachHang.getMaKhachHang()
-        );
-
-        long soNgayO = ChronoUnit.DAYS.between(ngayDen, ngayDi);
-
-        // Bắt đầu giao dịch
         Connection conn = null;
         try {
             conn = ConnectDB.getInstance().getConnection();
             conn.setAutoCommit(false);
 
-            // Lưu PhieuDatPhong
-            phieuDatPhongDao.addPhieuDatPhong(phieuDatPhong);
+            // Create or update customer
+            KhachHang khachHang;
+            String maKhachHang;
+            KhachHang existingCustomer = khachHangDao.getKhachHangBySDT(sdt);
+            if (existingCustomer != null) {
+                khachHang = existingCustomer;
+                maKhachHang = khachHang.getMaKhachHang();
+                khachHang.setTenKhachHang(hoTen);
+                khachHang.setCccd(cccd.isEmpty() ? null : cccd);
+                khachHang.setSoDienThoai(sdt);
+                khachHang.setEmail(email.isEmpty() ? null : email);
+                khachHang.setDiaChi(diaChi.isEmpty() ? null : diaChi);
+                khachHang.setQuocTich(quocTich.isEmpty() ? null : quocTich);
+                khachHang.setGioiTinh(gioiTinh != null ? gioiTinh : null);
+                khachHang.setNgaySinh(ngaySinh);
+                dataManager.updateKhachHang(khachHang);
+            } else {
+                maKhachHang = khachHangDao.getNextMaKhachHang();
+                if (maKhachHang == null || maKhachHang.isEmpty()) {
+                    throw new SQLException("Không thể tạo mã khách hàng.");
+                }
+                khachHang = new KhachHang(
+                        maKhachHang,
+                        hoTen,
+                        sdt,
+                        email.isEmpty() ? null : email,
+                        diaChi.isEmpty() ? null : diaChi,
+                        cccd.isEmpty() ? null : cccd,
+                        ngaySinh,
+                        quocTich.isEmpty() ? null : quocTich,
+                        gioiTinh != null ? gioiTinh : null
+                );
+                dataManager.addKhachHang(khachHang);
+            }
 
-            // Xử lý các phòng đã chọn
+            long soNgayO = ChronoUnit.DAYS.between(ngayDen, ngayDi);
+            double tongTien = 0;
             for (Phong phong : phongDaChonList) {
-                int index = allPhongList.indexOf(phong);
-                if (index != -1) {
-                    Phong updatedPhong = new Phong(
-                            phong.getMaPhong(),
-                            phong.getLoaiPhong(),
-                            phong.getGiaPhong(),
-                            "Đã đặt",
-                            phong.getDonDep(),
-                            phong.getViTri(),
-                            phong.getSoNguoiToiDa(),
-                            phong.getMoTa()
-                    );
-
-                    // Cập nhật trạng thái phòng
-                    phongDao.suaPhong(updatedPhong);	
-                    allPhongList.set(index, updatedPhong);
-                    dataManager.getPhongList().set(dataManager.getPhongList().indexOf(phong), updatedPhong);
-
-                    // Tạo và lưu ChitietPhieuDatPhong
-                    double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
-                    ChitietPhieuDatPhong chiTiet = new ChitietPhieuDatPhong(
-                            phong.getMaPhong(),
-                            maDatPhong,
-                            phong.getGiaPhong(),
-                            tienPhong,
-                            phong.getSoNguoiToiDa()
-                    );
-                    chitietPhieuDatPhongDao.addChitietPhieuDatPhong(chiTiet);
-                    phieuDatPhong.addChitietPhieuDatPhong(chiTiet);
-                }
+                double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
+                tongTien += tienPhong;
             }
 
-            // Cam kết giao dịch
+            // Create invoice before booking
+            String maHoaDon = hoaDonDao.getNextMaHoaDon();
+            String maNhanVien = dataManager.getCurrentNhanVien() != null
+                    ? dataManager.getCurrentNhanVien().getMaNhanVien()
+                    : "NV001";
+            HoaDon hoaDon = new HoaDon(
+                    maHoaDon,
+                    LocalDateTime.now(),
+                    "Tiền mặt",
+                    tongTien,
+                    false,
+                    maKhachHang,
+                    maNhanVien
+            );
+            dataManager.addHoaDon(hoaDon);
+
+            // Create booking with invoice ID
+            String maDatPhong = generateMaDatPhong();
+            PhieuDatPhong phieuDatPhong = new PhieuDatPhong(
+                    maDatPhong,
+                    ngayDen,
+                    ngayDi,
+                    LocalDate.now(),
+                    soLuongNguoi,
+                    "Đã đặt",
+                    maKhachHang,
+                    maHoaDon
+            );
+
+            dataManager.addPhieuDatPhong(phieuDatPhong);
+
+            // Update room status and create booking details
+            for (Phong phong : phongDaChonList) {
+                Phong updatedPhong = new Phong(
+                        phong.getMaPhong(),
+                        phong.getLoaiPhong(),
+                        phong.getGiaPhong(),
+                        "Đã đặt",
+                        phong.getDonDep(),
+                        phong.getViTri(),
+                        phong.getSoNguoiToiDa(),
+                        phong.getMoTa()
+                );
+
+                dataManager.updatePhong(updatedPhong);
+
+                double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
+                ChitietPhieuDatPhong chiTiet = new ChitietPhieuDatPhong(
+                        maDatPhong,
+                        phong.getMaPhong(),
+                        "Đã đặt",
+                        "Phòng " + phong.getLoaiPhong() + " cho " + phong.getSoNguoiToiDa() + " người",
+                        tienPhong,
+                        0.0,
+                        tienPhong,
+                        phong.getSoNguoiToiDa(),
+                        false
+                );
+
+                dataManager.addChitietPhieuDatPhong(chiTiet);
+            }
+
             conn.commit();
+
+            // Display booking info
+            StringBuilder thongTinDatPhong = new StringBuilder();
+            thongTinDatPhong.append("Thông tin đặt phòng:\n");
+            thongTinDatPhong.append("Mã phiếu: ").append(maDatPhong).append("\n");
+            thongTinDatPhong.append("Mã hóa đơn: ").append(maHoaDon).append("\n");
+            thongTinDatPhong.append("Họ tên: ").append(hoTen).append("\n");
+            thongTinDatPhong.append("CCCD: ").append(cccd.isEmpty() ? "Không cung cấp" : cccd).append("\n");
+            thongTinDatPhong.append("Địa chỉ: ").append(diaChi.isEmpty() ? "Không cung cấp" : diaChi).append("\n");
+            thongTinDatPhong.append("SĐT: ").append(sdt).append("\n");
+            thongTinDatPhong.append("Email: ").append(email.isEmpty() ? "Không cung cấp" : email).append("\n");
+            thongTinDatPhong.append("Quốc tịch: ").append(quocTich.isEmpty() ? "Không cung cấp" : quocTich).append("\n");
+            thongTinDatPhong.append("Giới tính: ").append(gioiTinh != null ? gioiTinh : "Không cung cấp").append("\n");
+            thongTinDatPhong.append("Ngày sinh: ").append(ngaySinh != null ? ngaySinh : "Không cung cấp").append("\n");
+            thongTinDatPhong.append("Ngày đến: ").append(ngayDen).append("\n");
+            thongTinDatPhong.append("Ngày đi: ").append(ngayDi).append("\n");
+            thongTinDatPhong.append("Số lượng người: ").append(soLuongNguoi).append("\n");
+            thongTinDatPhong.append("Tổng tiền: ").append(String.format("%,.0f", tongTien)).append(" VNĐ\n");
+            thongTinDatPhong.append("Phòng đã đặt:\n");
+            for (Phong phong : phongDaChonList) {
+                thongTinDatPhong.append("- ").append(phong.getMaPhong()).append(" (").append(phong.getLoaiPhong())
+                        .append(", Số người tối đa: ").append(phong.getSoNguoiToiDa()).append(", Giá: ")
+                        .append(String.format("%,.0f", phong.getGiaPhong() * soNgayO)).append(" VNĐ)\n");
+            }
+
+            showAlert("Thành công", thongTinDatPhong.toString());
+
+            // Clear inputs after successful save
+            clearInputFields();
+            phongDaChonList.clear();
+            updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue());
+
         } catch (SQLException e) {
-            try {
-                if (conn != null) {
+            if (conn != null) {
+                try {
                     conn.rollback();
+                } catch (SQLException ex) {
+                    System.err.println("Lỗi khi rollback: " + ex.getMessage());
                 }
-            } catch (SQLException rollbackEx) {
-                showAlert("Lỗi", "Không thể hoàn tác giao dịch: " + rollbackEx.getMessage());
             }
-            showAlert("Lỗi", "Không thể lưu phiếu đặt phòng hoặc chi tiết: " + e.getMessage());
-            return;
+            showAlert("Lỗi", "Không thể lưu thông tin đặt phòng: " + e.getMessage());
+            e.printStackTrace();
         } finally {
-            try {
-                if (conn != null) {
+            if (conn != null) {
+                try {
                     conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    System.err.println("Lỗi khi đóng kết nối: " + e.getMessage());
                 }
-            } catch (SQLException e) {
-                showAlert("Lỗi", "Không thể khôi phục chế độ auto-commit: " + e.getMessage());
+            }
+        }
+    }
+
+    private void clearInputFields() {
+        tfHoTen.clear();
+        tfCCCD.clear();
+        tfSDT.clear();
+        tfEmail.clear();
+        tfDiaChi.clear();
+        tfQuocTich.clear();
+        dpNgaySinh.setValue(null);
+        cbGioiTinh.setValue(null);
+        dpNgayDen.setValue(LocalDate.now());
+        dpNgayDi.setValue(LocalDate.now().plusDays(1));
+        tfSoLuongNguoi.clear();
+        tfTimKiem.clear();
+        phongDaChonList.clear();
+        updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue());
+    }
+
+    private String generateMaDatPhong() {
+        String prefix = "DP";
+        int maxNumber = 0;
+
+        for (PhieuDatPhong phieu : phieuDatPhongList) {
+            String maDatPhong = phieu.getMaDatPhong();
+            if (maDatPhong != null && maDatPhong.startsWith(prefix)) {
+                try {
+                    int number = Integer.parseInt(maDatPhong.substring(prefix.length()));
+                    maxNumber = Math.max(maxNumber, number);
+                } catch (NumberFormatException e) {
+                    // Ignore invalid codes
+                }
             }
         }
 
-        // Thêm PhieuDatPhong vào DataManager
-        dataManager.addPhieuDatPhong(phieuDatPhong);
-
-        // Hiển thị thông tin xác nhận đặt phòng
-        StringBuilder thongTinDatPhong = new StringBuilder();
-        thongTinDatPhong.append("Thông tin đặt phòng:\n");
-        thongTinDatPhong.append("Mã phiếu: ").append(maDatPhong).append("\n");
-        thongTinDatPhong.append("Họ tên: ").append(tfHoTen.getText()).append("\n");
-        thongTinDatPhong.append("CCCD: ").append(tfCCCD.getText()).append("\n");
-        thongTinDatPhong.append("Địa chỉ: ").append(tfDiaChi.getText()).append("\n");
-        thongTinDatPhong.append("SĐT: ").append(tfSDT.getText()).append("\n");
-        thongTinDatPhong.append("Email: ").append(tfEmail.getText()).append("\n");
-        thongTinDatPhong.append("Quốc tịch: ").append(tfQuocTich.getText()).append("\n");
-        thongTinDatPhong.append("Giới tính: ").append(gioiTinh).append("\n");
-        thongTinDatPhong.append("Ngày sinh: ").append(ngaySinh).append("\n");
-        thongTinDatPhong.append("Ngày đến: ").append(ngayDen).append(" ").append(cbGioDen.getValue()).append("\n");
-        thongTinDatPhong.append("Ngày đi: ").append(ngayDi).append(" ").append(cbGioDi.getValue()).append("\n");
-        thongTinDatPhong.append("Số lượng người: ").append(soLuongNguoi).append("\n");
-        thongTinDatPhong.append("Phòng đã đặt:\n");
-        for (Phong phong : phongDaChonList) {
-            thongTinDatPhong.append("- ").append(phong.getMaPhong())
-                    .append(" (Số lượng người: ").append(phong.getSoNguoiToiDa()).append(")\n");
-        }
-
-        showAlert("Thành công", thongTinDatPhong.toString());
-
-        handleCancel();
+        return prefix + String.format("%03d", maxNumber + 1);
     }
 
     private void showAlert(String title, String message) {

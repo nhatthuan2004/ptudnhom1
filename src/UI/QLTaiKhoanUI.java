@@ -1,5 +1,7 @@
 package UI;
 
+import dao.NhanVien_Dao;
+import dao.TaiKhoan_Dao;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -7,6 +9,10 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import model.NhanVien;
+import model.TaiKhoan;
+
+import java.sql.SQLException;
+import java.util.List;
 
 public class QLTaiKhoanUI {
     private final ObservableList<NhanVien> danhSachNhanVien;
@@ -14,9 +20,13 @@ public class QLTaiKhoanUI {
     private StackPane contentPane;
     private StackPane mainPane;
     private final DataManager dataManager;
+    private final NhanVien_Dao nhanVienDao;
+    private final TaiKhoan_Dao taiKhoanDao;
 
     public QLTaiKhoanUI() {
         dataManager = DataManager.getInstance();
+        nhanVienDao = new NhanVien_Dao();
+        taiKhoanDao = new TaiKhoan_Dao();
         this.danhSachNhanVien = dataManager.getNhanVienList();
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
@@ -29,7 +39,13 @@ public class QLTaiKhoanUI {
         mainPane.setStyle("-fx-background-color: #f0f0f0;");
         mainPane.setPrefSize(1120, 800);
 
-        HBox userInfoBox = UserInfoBox.createUserInfoBox();
+        HBox userInfoBox;
+        try {
+            userInfoBox = UserInfoBox.createUserInfoBox();
+        } catch (Exception e) {
+            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
+        }
         userInfoBox.setPrefSize(200, 50);
         userInfoBox.setMaxSize(200, 50);
         StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
@@ -41,7 +57,7 @@ public class QLTaiKhoanUI {
 
         HBox topHeader = new HBox(addButton);
         topHeader.setAlignment(Pos.CENTER_LEFT);
-        topHeader.setPadding(new Insets(10, 0, 10, 20)); // Padding moved to HBox to maintain spacing
+        topHeader.setPadding(new Insets(10, 0, 10, 20));
         StackPane.setAlignment(topHeader, Pos.TOP_LEFT);
 
         table = new TableView<>(danhSachNhanVien);
@@ -57,11 +73,29 @@ public class QLTaiKhoanUI {
         tenNhanVienCol.setPrefWidth(200);
 
         TableColumn<NhanVien, String> taiKhoanCol = new TableColumn<>("Tài Khoản");
-        taiKhoanCol.setCellValueFactory(new PropertyValueFactory<>("taiKhoan"));
+        taiKhoanCol.setCellValueFactory(cellData -> {
+            try {
+                List<TaiKhoan> taiKhoans = taiKhoanDao.timKiemTaiKhoan(cellData.getValue().getMaNhanVien());
+                return taiKhoans.isEmpty() ? new javafx.beans.property.SimpleStringProperty("") 
+                                          : new javafx.beans.property.SimpleStringProperty(taiKhoans.get(0).getTenDangNhap());
+            } catch (SQLException e) {
+                showAlert("Lỗi", "Không thể lấy tài khoản: " + e.getMessage());
+                return new javafx.beans.property.SimpleStringProperty("");
+            }
+        });
         taiKhoanCol.setPrefWidth(200);
 
         TableColumn<NhanVien, String> matKhauCol = new TableColumn<>("Mật Khẩu");
-        matKhauCol.setCellValueFactory(new PropertyValueFactory<>("matKhau"));
+        matKhauCol.setCellValueFactory(cellData -> {
+            try {
+                List<TaiKhoan> taiKhoans = taiKhoanDao.timKiemTaiKhoan(cellData.getValue().getMaNhanVien());
+                return taiKhoans.isEmpty() ? new javafx.beans.property.SimpleStringProperty("") 
+                                          : new javafx.beans.property.SimpleStringProperty(taiKhoans.get(0).getMatKhau());
+            } catch (SQLException e) {
+                showAlert("Lỗi", "Không thể lấy mật khẩu: " + e.getMessage());
+                return new javafx.beans.property.SimpleStringProperty("");
+            }
+        });
         matKhauCol.setPrefWidth(200);
 
         TableColumn<NhanVien, Void> editCol = new TableColumn<>("Đổi MK");
@@ -76,8 +110,16 @@ public class QLTaiKhoanUI {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(btnEdit);
-                    btnEdit.setOnAction(e -> showTaiKhoanForm(getTableRow().getItem()));
+                    NhanVien nv = getTableRow().getItem();
+                    try {
+                        List<TaiKhoan> taiKhoans = taiKhoanDao.timKiemTaiKhoan(nv.getMaNhanVien());
+                        btnEdit.setDisable(taiKhoans.isEmpty());
+                        btnEdit.setOnAction(e -> showTaiKhoanForm(nv));
+                        setGraphic(btnEdit);
+                    } catch (SQLException e) {
+                        showAlert("Lỗi", "Không thể kiểm tra tài khoản: " + e.getMessage());
+                        setGraphic(null);
+                    }
                 }
             }
         });
@@ -95,18 +137,35 @@ public class QLTaiKhoanUI {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(btnDelete);
-                    btnDelete.setOnAction(e -> {
-                        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                        confirm.setTitle("Xác nhận xóa");
-                        confirm.setHeaderText("Bạn có chắc muốn xóa tài khoản này?");
-                        confirm.setContentText("Nhân viên: " + getTableRow().getItem().getTenNhanVien());
-                        confirm.showAndWait().ifPresent(response -> {
-                            if (response == ButtonType.OK) {
-                                danhSachNhanVien.remove(getTableRow().getItem());
-                            }
+                    NhanVien nv = getTableRow().getItem();
+                    try {
+                        List<TaiKhoan> taiKhoans = taiKhoanDao.timKiemTaiKhoan(nv.getMaNhanVien());
+                        btnDelete.setDisable(taiKhoans.isEmpty());
+                        btnDelete.setOnAction(e -> {
+                            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                            confirm.setTitle("Xác nhận xóa");
+                            confirm.setHeaderText("Bạn có chắc muốn xóa tài khoản này?");
+                            confirm.setContentText("Nhân viên: " + nv.getTenNhanVien());
+                            confirm.showAndWait().ifPresent(response -> {
+                                if (response == ButtonType.OK) {
+                                    try {
+                                        if (taiKhoanDao.xoaTaiKhoan(taiKhoans.get(0).getTenDangNhap())) {
+                                            showAlert("Thành công", "Xóa tài khoản thành công!");
+                                            table.refresh();
+                                        } else {
+                                            showAlert("Lỗi", "Không thể xóa tài khoản!");
+                                        }
+                                    } catch (SQLException ex) {
+                                        showAlert("Lỗi", "Lỗi khi xóa tài khoản: " + ex.getMessage());
+                                    }
+                                }
+                            });
                         });
-                    });
+                        setGraphic(btnDelete);
+                    } catch (SQLException e) {
+                        showAlert("Lỗi", "Không thể kiểm tra tài khoản: " + e.getMessage());
+                        setGraphic(null);
+                    }
                 }
             }
         });
@@ -155,19 +214,39 @@ public class QLTaiKhoanUI {
 
     private void showTaiKhoanForm(NhanVien nhanVien) {
         boolean isEditMode = nhanVien != null;
-        VBox form = createCenteredForm(isEditMode ? "Đổi mật khẩu " + nhanVien.getMaNhanVien() : "Thêm tài khoản mới");
+        String title = isEditMode ? "Đổi mật khẩu " + nhanVien.getMaNhanVien() : "Thêm tài khoản mới";
+        VBox form = createCenteredForm(title);
 
         TextField tfMaNhanVien = new TextField(isEditMode ? nhanVien.getMaNhanVien() : "");
         tfMaNhanVien.setPromptText("Mã nhân viên...");
         tfMaNhanVien.setDisable(isEditMode);
 
-        TextField tfTaiKhoan = new TextField(isEditMode ? nhanVien.getTaiKhoan() : "");
+        TextField tfTaiKhoan = new TextField();
         tfTaiKhoan.setPromptText("Tài khoản...");
         tfTaiKhoan.setDisable(isEditMode);
+        if (isEditMode) {
+            try {
+                List<TaiKhoan> taiKhoans = taiKhoanDao.timKiemTaiKhoan(nhanVien.getMaNhanVien());
+                if (!taiKhoans.isEmpty()) {
+                    tfTaiKhoan.setText(taiKhoans.get(0).getTenDangNhap());
+                }
+            } catch (SQLException e) {
+                showAlert("Lỗi", "Không thể lấy tài khoản: " + e.getMessage());
+            }
+        }
 
         PasswordField pfMatKhau = new PasswordField();
         pfMatKhau.setPromptText("Mật khẩu mới...");
-        if (isEditMode) pfMatKhau.setText(nhanVien.getMatKhau());
+        if (isEditMode) {
+            try {
+                List<TaiKhoan> taiKhoans = taiKhoanDao.timKiemTaiKhoan(nhanVien.getMaNhanVien());
+                if (!taiKhoans.isEmpty()) {
+                    pfMatKhau.setText(taiKhoans.get(0).getMatKhau());
+                }
+            } catch (SQLException e) {
+                showAlert("Lỗi", "Không thể lấy mật khẩu: " + e.getMessage());
+            }
+        }
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -190,23 +269,43 @@ public class QLTaiKhoanUI {
                 return;
             }
 
-            if (!isEditMode) {
-                if (danhSachNhanVien.stream().anyMatch(nv -> nv.getMaNhanVien().equals(maNhanVien))) {
-                    showAlert("Lỗi", "Mã nhân viên " + maNhanVien + " đã tồn tại!");
-                    return;
+            try {
+                if (!isEditMode) {
+                    // Kiểm tra mã nhân viên tồn tại
+                    NhanVien existingNhanVien = nhanVienDao.getNhanVienByMa(maNhanVien);
+                    if (existingNhanVien == null) {
+                        showAlert("Lỗi", "Mã nhân viên " + maNhanVien + " không tồn tại!");
+                        return;
+                    }
+                    // Kiểm tra tài khoản đã tồn tại
+                    List<TaiKhoan> existingTaiKhoans = taiKhoanDao.timKiemTaiKhoan(taiKhoan);
+                    if (!existingTaiKhoans.isEmpty()) {
+                        showAlert("Lỗi", "Tài khoản " + taiKhoan + " đã tồn tại!");
+                        return;
+                    }
+                    // Thêm tài khoản
+                    TaiKhoan newTaiKhoan = new TaiKhoan(taiKhoan, matKhau, maNhanVien);
+                    if (taiKhoanDao.themTaiKhoan(newTaiKhoan)) {
+                        showAlert("Thành công", "Thêm tài khoản thành công!");
+                        contentPane.getChildren().setAll(mainPane);
+                        table.refresh();
+                    } else {
+                        showAlert("Lỗi", "Không thể thêm tài khoản!");
+                    }
+                } else {
+                    // Sửa tài khoản
+                    TaiKhoan updatedTaiKhoan = new TaiKhoan(taiKhoan, matKhau, maNhanVien);
+                    if (taiKhoanDao.suaTaiKhoan(updatedTaiKhoan)) {
+                        showAlert("Thành công", "Cập nhật mật khẩu thành công!");
+                        contentPane.getChildren().setAll(mainPane);
+                        table.refresh();
+                    } else {
+                        showAlert("Lỗi", "Không thể cập nhật mật khẩu!");
+                    }
                 }
-                if (danhSachNhanVien.stream().anyMatch(nv -> nv.getTaiKhoan().equals(taiKhoan))) {
-                    showAlert("Lỗi", "Tài khoản " + taiKhoan + " đã tồn tại!");
-                    return;
-                }
-                NhanVien newNhanVien = new NhanVien(maNhanVien, "", "", false, "", "", 0, taiKhoan, matKhau, "Đang làm");
-                dataManager.addNhanVien(newNhanVien);
-            } else {
-                nhanVien.setTaiKhoan(taiKhoan);
-                nhanVien.setMatKhau(matKhau);
-                table.refresh();
+            } catch (SQLException ex) {
+                showAlert("Lỗi", "Lỗi khi xử lý tài khoản: " + ex.getMessage());
             }
-            contentPane.getChildren().setAll(mainPane);
         });
 
         Button btnHuy = new Button("Hủy");
@@ -221,7 +320,7 @@ public class QLTaiKhoanUI {
     }
 
     private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
+        Alert alert = new Alert(title.equals("Lỗi") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

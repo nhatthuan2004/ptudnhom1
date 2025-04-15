@@ -19,8 +19,6 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import model.NhanVien;
 
-import java.io.File;
-
 public class HomeUI extends Application {
     private VBox menuItems;
     private StackPane slidePane;
@@ -36,7 +34,7 @@ public class HomeUI extends Application {
 
         dataManager = DataManager.getInstance();
 
-        mediaView = loadVideo("asrc/img/nen.mp4");
+        mediaView = loadVideo("c/img/nen.mp4");
         mediaView.setPreserveRatio(false);
 
         BorderPane menu = buildSidebarMenu();
@@ -46,6 +44,20 @@ public class HomeUI extends Application {
         slidePane = new StackPane();
         slidePane.setStyle("-fx-background-color: #f0f0f0;");
         slidePane.setPrefSize(1120, 800);
+
+        // Thêm UserInfoBox vào slidePane
+        HBox userInfoBox;
+        try {
+            userInfoBox = UserInfoBox.createUserInfoBox();
+        } catch (Exception e) {
+            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
+        }
+        userInfoBox.setPrefSize(200, 50);
+        userInfoBox.setMaxSize(200, 50);
+        StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
+        StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
+        slidePane.getChildren().add(userInfoBox);
 
         showDefaultHomeView();
 
@@ -77,14 +89,13 @@ public class HomeUI extends Application {
 
     private MediaView loadVideo(String videoPath) {
         try {
-            File videoFile = new File(videoPath);
-            if (!videoFile.exists()) {
+            java.net.URL videoUrl = getClass().getResource(videoPath);
+            if (videoUrl == null) {
                 System.err.println("Không tìm thấy video tại: " + videoPath);
                 return new MediaView();
             }
 
-            String videoUri = videoFile.toURI().toString();
-            Media media = new Media(videoUri);
+            Media media = new Media(videoUrl.toExternalForm());
             mediaPlayer = new MediaPlayer(media);
             mediaView = new MediaView(mediaPlayer);
 
@@ -122,25 +133,52 @@ public class HomeUI extends Application {
         menuItems = new VBox(10);
         menuItems.setAlignment(Pos.TOP_LEFT);
 
-        NhanVien currentUser = UserInfoBox.getCurrentUser();
-        boolean isQuanLy = currentUser != null && "Quản lý".equals(currentUser.getChucVu());
+        NhanVien currentUser = dataManager.getCurrentNhanVien();
+        boolean isQuanLy = currentUser != null && currentUser.getChucVu() != null && 
+                          currentUser.getChucVu().equals("Quan ly");
+        boolean isAdmin = currentUser != null && currentUser.getMaNhanVien().equals("ADMIN");
 
-        addExpandableMenu(menuItems, "Khách hàng", "Quản lý khách hàng", "Tìm kiếm khách hàng");
-        addExpandableMenu(menuItems, "Phòng", "Đặt phòng", "Quản lý phòng", "Quản lý đặt phòng", "Tìm kiếm phòng");
-        addExpandableMenu(menuItems, "Dịch vụ", isQuanLy ? new String[]{"Quản lý dịch vụ", "Tìm kiếm dịch vụ"} : new String[]{"Tìm kiếm dịch vụ"});
-        addExpandableMenu(menuItems, "Hóa đơn", isQuanLy ? new String[]{"Quản lý hóa đơn", "Quản lý doanh thu", "Tìm kiếm hóa đơn"} : new String[]{"Tìm kiếm hóa đơn"});
-        addExpandableMenu(menuItems, "CT Khuyến mãi", isQuanLy ? new String[]{"Quản lý khuyến mãi", "Tìm kiếm khuyến mãi"} : new String[]{"Tìm kiếm khuyến mãi"});
-        addExpandableMenu(menuItems, "Nhân viên", isQuanLy ? new String[]{"Quản lý nhân viên", "Tìm kiếm nhân viên"} : new String[]{"Tìm kiếm nhân viên"});
-        addExpandableMenu(menuItems, "Tài khoản", isQuanLy ? new String[]{"Quản lý tài khoản"} : new String[]{});
+        // Menu cho tất cả người dùng
+        addExpandableMenu(menuItems, "Khách hàng", 
+            isQuanLy ? new String[]{"Quản lý khách hàng", "Tìm kiếm khách hàng"} 
+                     : new String[]{"Tìm kiếm khách hàng"});
+        addExpandableMenu(menuItems, "Phòng", 
+            isQuanLy ? new String[]{"Đặt phòng", "Quản lý phòng", "Quản lý đặt phòng", "Đổi phòng", "Tìm kiếm phòng"} 
+                     : new String[]{"Đặt phòng", "Đổi phòng", "Tìm kiếm phòng"});
+        addExpandableMenu(menuItems, "Dịch vụ", 
+            isQuanLy ? new String[]{"Quản lý dịch vụ", "Tìm kiếm dịch vụ"} 
+                     : new String[]{"Tìm kiếm dịch vụ"});
+        addExpandableMenu(menuItems, "Hóa đơn", 
+            isQuanLy ? new String[]{"Quản lý hóa đơn", "Quản lý doanh thu", "Tìm kiếm hóa đơn"} 
+                     : new String[]{"Tìm kiếm hóa đơn"});
+        addExpandableMenu(menuItems, "CT Khuyến mãi", 
+            isQuanLy ? new String[]{"Quản lý khuyến mãi", "Tìm kiếm khuyến mãi"} 
+                     : new String[]{"Tìm kiếm khuyến mãi"});
+        
+        // Menu chỉ cho Quản lý (không cho admin mặc định)
+        if (isQuanLy && !isAdmin) {
+            addExpandableMenu(menuItems, "Nhân viên", 
+                new String[]{"Quản lý nhân viên", "Tìm kiếm nhân viên"});
+            addExpandableMenu(menuItems, "Tài khoản", 
+                new String[]{"Quản lý tài khoản"});
+        } else {
+            addExpandableMenu(menuItems, "Nhân viên", 
+                new String[]{"Tìm kiếm nhân viên"});
+        }
+
+        // Menu đăng xuất và thoát
         addExpandableMenu(menuItems, "Đăng xuất");
         addExpandableMenu(menuItems, "Thoát");
 
         ImageView fbIcon = new ImageView(loadImage("/img/iconfb.png"));
         ImageView instaIcon = new ImageView(loadImage("/img/iconinta.png"));
         ImageView ytIcon = new ImageView(loadImage("/img/iconyt.png"));
-        fbIcon.setFitWidth(20); fbIcon.setFitHeight(20);
-        instaIcon.setFitWidth(20); instaIcon.setFitHeight(20);
-        ytIcon.setFitWidth(20); ytIcon.setFitHeight(20);
+        fbIcon.setFitWidth(20);
+        fbIcon.setFitHeight(20);
+        instaIcon.setFitWidth(20);
+        instaIcon.setFitHeight(20);
+        ytIcon.setFitWidth(20);
+        ytIcon.setFitHeight(20);
 
         HBox socialBox = new HBox(10, fbIcon, instaIcon, ytIcon);
         socialBox.setAlignment(Pos.CENTER_LEFT);
@@ -170,9 +208,6 @@ public class HomeUI extends Application {
         subBox.setVisible(false);
         subBox.setManaged(false);
 
-        NhanVien currentUser = UserInfoBox.getCurrentUser();
-        boolean isQuanLy = currentUser != null && "Quản lý".equals(currentUser.getChucVu());
-
         for (String item : items) {
             Button subBtn = createStyledButton(item);
             subBtn.setStyle(createBaseStyle() + "-fx-font-size: 14px; -fx-padding: 5 15;");
@@ -185,12 +220,17 @@ public class HomeUI extends Application {
                     subBtn.setStyle(createSelectedStyle());
                     selectedButton = subBtn;
 
+                    NhanVien currentUser = dataManager.getCurrentNhanVien();
                     if (currentUser == null) {
                         showPermissionDeniedAlert("Vui lòng đăng nhập để sử dụng chức năng này.");
                         performLogout();
                         return;
                     }
 
+                    String role = currentUser.getChucVu() != null && currentUser.getChucVu().equals("Quan ly") 
+                                ? "Quản lý" : "Nhân viên";
+
+                    System.out.println("Mở giao diện: " + item);
                     switch (item) {
                         case "Quản lý khách hàng":
                             QLKH qlkhUI = new QLKH();
@@ -206,11 +246,15 @@ public class HomeUI extends Application {
                             break;
                         case "Quản lý phòng":
                             QLphongUI qlPhongUI = new QLphongUI();
-                            slidePane.getChildren().setAll(qlPhongUI.getUI());
+                            slidePane.getChildren().setAll(qlPhongUI.getUI(role));
                             break;
                         case "Quản lý đặt phòng":
                             QLdatphongUI qlDatPhongUI = new QLdatphongUI();
                             slidePane.getChildren().setAll(qlDatPhongUI.getUI());
+                            break;
+                        case "Đổi phòng":
+                            DoiPhongUI doiPhongUI = new DoiPhongUI();
+                            slidePane.getChildren().setAll(doiPhongUI.getUI());
                             break;
                         case "Tìm kiếm phòng":
                             TimkiemphongUI tkPhongUI = new TimkiemphongUI();
@@ -361,9 +405,14 @@ public class HomeUI extends Application {
 
     private Image loadImage(String filePath) {
         try {
-            return new Image(getClass().getResource(filePath).toExternalForm());
+            java.net.URL resourceUrl = getClass().getResource(filePath);
+            if (resourceUrl == null) {
+                System.err.println("Không tìm thấy hình ảnh: " + filePath);
+                return new Image("https://via.placeholder.com/20");
+            }
+            return new Image(resourceUrl.toExternalForm());
         } catch (Exception e) {
-            System.err.println("Không tìm thấy hình ảnh: " + filePath);
+            System.err.println("Lỗi khi tải hình ảnh: " + filePath + ", lỗi: " + e.getMessage());
             return new Image("https://via.placeholder.com/20");
         }
     }
@@ -383,6 +432,19 @@ public class HomeUI extends Application {
         welcomeBox.getChildren().addAll(welcomeText, subText);
         contentPane.getChildren().add(welcomeBox);
 
+        HBox userInfoBox;
+        try {
+            userInfoBox = UserInfoBox.createUserInfoBox();
+        } catch (Exception e) {
+            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
+        }
+        userInfoBox.setPrefSize(200, 50);
+        userInfoBox.setMaxSize(200, 50);
+        StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
+        StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
+        contentPane.getChildren().add(userInfoBox);
+
         slidePane.getChildren().setAll(contentPane);
 
         if (selectedButton != null) {
@@ -396,6 +458,7 @@ public class HomeUI extends Application {
             mediaPlayer.stop();
         }
         UserInfoBox.setCurrentUser(null);
+        dataManager.setCurrentNhanVien(null);
         LoginUI.showLogin(primaryStage);
     }
 

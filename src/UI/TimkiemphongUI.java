@@ -36,6 +36,18 @@ public class TimkiemphongUI {
         StackPane mainPane = new StackPane();
         mainPane.setStyle("-fx-background-color: white;");
 
+        // UserInfoBox
+        HBox userInfoBox;
+        try {
+            userInfoBox = UserInfoBox.createUserInfoBox();
+        } catch (Exception e) {
+            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
+        }
+        userInfoBox.setPrefSize(200, 50);
+        userInfoBox.setMaxSize(200, 50);
+        userInfoBox.setAlignment(Pos.CENTER);
+
         VBox centerLayout = new VBox(15);
         centerLayout.setPadding(new Insets(20));
         centerLayout.setAlignment(Pos.TOP_CENTER);
@@ -73,6 +85,9 @@ public class TimkiemphongUI {
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
         BorderPane layout = new BorderPane();
+        layout.setTop(userInfoBox);
+        BorderPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
+        BorderPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
         layout.setCenter(centerLayout);
         layout.setPadding(new Insets(10));
 
@@ -80,7 +95,7 @@ public class TimkiemphongUI {
             String tuKhoa = searchField.getText().trim();
             try {
                 if (tuKhoa.isEmpty()) {
-                    phongList.setAll(phongDao.getAllPhong()); // Tải lại toàn bộ danh sách nếu không có từ khóa
+                    phongList.setAll(phongDao.getAllPhong());
                 } else {
                     List<Phong> filteredList = phongDao.timKiemPhong(tuKhoa);
                     if (filteredList.isEmpty()) {
@@ -110,7 +125,7 @@ public class TimkiemphongUI {
         roomFlowPane.getChildren().clear();
         for (Phong phong : phongList) {
             VBox roomBox = new VBox(8);
-            roomBox.setPrefSize(160, 130);
+            roomBox.setPrefSize(200, 200); // Tăng kích thước để chứa thêm thông tin
             roomBox.setPadding(new Insets(10));
             roomBox.setAlignment(Pos.CENTER_LEFT);
             String bgColor = switch (phong.getTrangThai()) {
@@ -121,21 +136,30 @@ public class TimkiemphongUI {
             };
             roomBox.setStyle("-fx-background-color: " + bgColor
                     + "; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-color: #666; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);");
-            roomBox.setOnMouseClicked(e -> showRoomDetailsDialog(phong)); // Thêm sự kiện nhấp để xem chi tiết
+            roomBox.setOnMouseClicked(e -> showRoomDetailsDialog(phong));
 
             Label maPhongLabel = new Label("Phòng: " + phong.getMaPhong());
             maPhongLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14;");
             Label loaiPhongLabel = new Label("Loại: " + phong.getLoaiPhong());
             Label trangThaiLabel = new Label("Trạng thái: " + phong.getTrangThai());
-            Label donDepLabel = new Label(
-                    "Dọn dẹp: " + (phong.getDonDep().equals("Đã dọn dẹp") ? "Đã dọn dẹp" : "Chưa dọn dẹp"));
+            // Sửa lỗi null cho donDep
+            String donDepText = phong.getDonDep() != null && phong.getDonDep().equals("Đã dọn dẹp")
+                    ? "Đã dọn dẹp" : "Chưa dọn dẹp";
+            Label donDepLabel = new Label("Dọn dẹp: " + donDepText);
+            Label viTriLabel = new Label("Vị trí: " + (phong.getViTri() != null ? phong.getViTri() : "Chưa xác định"));
+            Label moTaLabel = new Label("Mô tả: " + (phong.getMoTa() != null ? phong.getMoTa() : "Chưa có mô tả"));
+            Label giaPhongLabel = new Label("Giá: " + String.format("%,.0f VNĐ", phong.getGiaPhong()));
 
-            maPhongLabel.setMaxWidth(140);
-            loaiPhongLabel.setMaxWidth(140);
-            trangThaiLabel.setMaxWidth(140);
-            donDepLabel.setMaxWidth(140);
+            maPhongLabel.setMaxWidth(180);
+            loaiPhongLabel.setMaxWidth(180);
+            trangThaiLabel.setMaxWidth(180);
+            donDepLabel.setMaxWidth(180);
+            viTriLabel.setMaxWidth(180);
+            moTaLabel.setMaxWidth(180);
+            giaPhongLabel.setMaxWidth(180);
 
-            roomBox.getChildren().addAll(maPhongLabel, loaiPhongLabel, trangThaiLabel, donDepLabel);
+            roomBox.getChildren().addAll(maPhongLabel, loaiPhongLabel, trangThaiLabel, donDepLabel,
+                    viTriLabel, moTaLabel, giaPhongLabel);
             roomFlowPane.getChildren().add(roomBox);
         }
     }
@@ -152,10 +176,11 @@ public class TimkiemphongUI {
         Label loaiPhongLabel = new Label("Loại phòng: " + phong.getLoaiPhong());
         Label giaPhongLabel = new Label("Giá phòng: " + String.format("%,.0f VNĐ", phong.getGiaPhong()));
         Label trangThaiLabel = new Label("Trạng thái: " + phong.getTrangThai());
-        Label donDepLabel = new Label("Dọn dẹp: " + phong.getDonDep());
-        Label viTriLabel = new Label("Vị trí: " + phong.getViTri());
+        // Sửa lỗi null cho donDep trong dialog
+        Label donDepLabel = new Label("Dọn dẹp: " + (phong.getDonDep() != null ? phong.getDonDep() : "Chưa xác định"));
+        Label viTriLabel = new Label("Vị trí: " + (phong.getViTri() != null ? phong.getViTri() : "Chưa xác định"));
         Label soNguoiToiDaLabel = new Label("Số người tối đa: " + phong.getSoNguoiToiDa());
-        Label moTaLabel = new Label("Mô tả: " + phong.getMoTa());
+        Label moTaLabel = new Label("Mô tả: " + (phong.getMoTa() != null ? phong.getMoTa() : "Chưa có mô tả"));
 
         content.getChildren().addAll(phongLabel, maPhongLabel, loaiPhongLabel, giaPhongLabel, trangThaiLabel,
                 donDepLabel, viTriLabel, soNguoiToiDaLabel, moTaLabel);

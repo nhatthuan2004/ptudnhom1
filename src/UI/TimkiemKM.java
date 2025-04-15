@@ -1,6 +1,5 @@
 package UI;
 
-import dao.KhuyenMai_Dao;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -9,28 +8,22 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
-import model.KhuyenMai; // Sử dụng KhuyenMai thay vì ChuongTrinhKhuyenMai để đồng bộ với DAO
-
-import java.sql.SQLException;
+import model.KhuyenMai;
 
 public class TimkiemKM {
     private final ObservableList<KhuyenMai> danhSachKhuyenMai;
-    private final KhuyenMai_Dao khuyenMaiDao;
+    private final DataManager dataManager;
 
     public TimkiemKM() {
-        try {
-            khuyenMaiDao = new KhuyenMai_Dao();
-            danhSachKhuyenMai = FXCollections.observableArrayList(khuyenMaiDao.getAllKhuyenMai());
-        } catch (Exception e) {
-            throw new RuntimeException("Không thể kết nối tới cơ sở dữ liệu!", e);
-        }
+        dataManager = DataManager.getInstance();
+        this.danhSachKhuyenMai = dataManager.getKhuyenMaiList();
     }
 
     public StackPane getUI() {
         StackPane root = new StackPane();
         root.setStyle("-fx-background-color: white;");
 
-        // ==== THÔNG TIN NGƯỜI DÙNG GÓC PHẢI ====
+        // User info box
         HBox userInfoBox;
         try {
             userInfoBox = UserInfoBox.createUserInfoBox();
@@ -39,38 +32,54 @@ public class TimkiemKM {
             userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
         }
         userInfoBox.setPrefSize(200, 50);
+        userInfoBox.setMaxSize(200, 50);
         StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
-        // ==== TIÊU ĐỀ + THANH TÌM KIẾM ==== 
+        // Title
         Label title = new Label("Tìm kiếm khuyến mãi theo tên");
         title.setFont(new Font(20));
+        title.setStyle("-fx-font-weight: bold;");
 
+        // Search bar
         TextField txtTimKiem = new TextField();
         txtTimKiem.setPromptText("Nhập tên khuyến mãi...");
+        txtTimKiem.setPrefWidth(300);
+        txtTimKiem.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
         Button btnTimKiem = new Button("Tìm kiếm");
-        btnTimKiem.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
+        btnTimKiem.setStyle(
+                "-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
 
         HBox searchBox = new HBox(10, txtTimKiem, btnTimKiem);
         searchBox.setPadding(new Insets(10));
         searchBox.setAlignment(Pos.CENTER);
 
-        // ==== BẢNG KẾT QUẢ ==== 
+        // Table
         TableView<KhuyenMai> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setStyle("-fx-border-color: #d3d3d3; -fx-background-radius: 5; -fx-border-radius: 5;");
+
+        ScrollPane scrollPane = new ScrollPane(table);
+        scrollPane.setFitToHeight(true);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
         TableColumn<KhuyenMai, String> colMaKhuyenMai = new TableColumn<>("Mã Khuyến Mãi");
         colMaKhuyenMai.setCellValueFactory(new PropertyValueFactory<>("maChuongTrinhKhuyenMai"));
+        colMaKhuyenMai.setPrefWidth(120);
 
         TableColumn<KhuyenMai, String> colTenKhuyenMai = new TableColumn<>("Tên Khuyến Mãi");
         colTenKhuyenMai.setCellValueFactory(new PropertyValueFactory<>("tenChuongTrinhKhuyenMai"));
+        colTenKhuyenMai.setPrefWidth(150);
 
         TableColumn<KhuyenMai, String> colMoTa = new TableColumn<>("Mô Tả");
         colMoTa.setCellValueFactory(new PropertyValueFactory<>("moTaChuongTrinhKhuyenMai"));
+        colMoTa.setPrefWidth(200);
 
         TableColumn<KhuyenMai, Double> colGiamGia = new TableColumn<>("Giảm Giá");
         colGiamGia.setCellValueFactory(new PropertyValueFactory<>("chietKhau"));
+        colGiamGia.setPrefWidth(100);
 
         TableColumn<KhuyenMai, Boolean> colTrangThai = new TableColumn<>("Trạng Thái");
         colTrangThai.setCellValueFactory(new PropertyValueFactory<>("trangThai"));
@@ -81,44 +90,54 @@ public class TimkiemKM {
                 setText(empty || item == null ? "" : (item ? "Hoạt động" : "Không hoạt động"));
             }
         });
+        colTrangThai.setPrefWidth(100);
 
         table.getColumns().addAll(colMaKhuyenMai, colTenKhuyenMai, colMoTa, colGiamGia, colTrangThai);
-
-        // Hiển thị toàn bộ danh sách ban đầu
         table.setItems(danhSachKhuyenMai);
 
-        // ==== KẾT HỢP LAYOUT NỘI DUNG ==== 
-        VBox content = new VBox(10, title, searchBox, table);
+        // Content layout
+        VBox content = new VBox(15, title, searchBox, scrollPane);
         content.setPadding(new Insets(20));
+        content.setAlignment(Pos.TOP_CENTER);
+        content.setStyle(
+                "-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
-        // ==== GIAO DIỆN TỔNG ==== 
         BorderPane layout = new BorderPane();
         layout.setCenter(content);
-        layout.setTop(userInfoBox);
         layout.setPadding(new Insets(10));
 
-        // ==== HÀNH ĐỘNG TÌM KIẾM ==== 
-        btnTimKiem.setOnAction(e -> {
-            String keyword = txtTimKiem.getText().trim();
-            try {
-                if (!keyword.isEmpty()) {
-                    ObservableList<KhuyenMai> ketQua = FXCollections.observableArrayList(khuyenMaiDao.timKiemKhuyenMai(keyword));
-                    table.setItems(ketQua);
-                } else {
-                    table.setItems(FXCollections.observableArrayList(khuyenMaiDao.getAllKhuyenMai())); // Hiển thị lại toàn bộ danh sách
+        // Search action
+        Runnable searchAction = () -> {
+            String keyword = txtTimKiem.getText().trim().toLowerCase();
+            ObservableList<KhuyenMai> ketQua = FXCollections.observableArrayList();
+            if (keyword.isEmpty()) {
+                ketQua.addAll(danhSachKhuyenMai);
+            } else {
+                for (KhuyenMai km : danhSachKhuyenMai) {
+                    if (km.getTenChuongTrinhKhuyenMai().toLowerCase().contains(keyword)) {
+                        ketQua.add(km);
+                    }
                 }
-            } catch (SQLException ex) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Lỗi");
-                alert.setHeaderText(null);
-                alert.setContentText("Không thể tìm kiếm khuyến mãi: " + ex.getMessage());
-                alert.showAndWait();
+                if (ketQua.isEmpty()) {
+                    showAlert("Thông báo", "Không tìm thấy khuyến mãi nào phù hợp với từ khóa: " + keyword);
+                }
             }
-        });
+            table.setItems(ketQua);
+        };
 
-        txtTimKiem.setOnAction(e -> btnTimKiem.fire()); // Hỗ trợ tìm kiếm bằng Enter
+        btnTimKiem.setOnAction(e -> searchAction.run());
+        txtTimKiem.setOnAction(e -> searchAction.run());
 
-        root.getChildren().add(layout);
+        root.getChildren().addAll(layout, userInfoBox);
         return root;
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

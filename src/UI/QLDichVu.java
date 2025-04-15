@@ -1,6 +1,7 @@
 package UI;
 
 import dao.DichVu_Dao;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -30,34 +31,51 @@ public class QLDichVu {
             danhSachDichVu.clear();
             danhSachDichVu.addAll(dichVuDao.getAllDichVu());
         } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tải dữ liệu dịch vụ: " + e.getMessage());
+            showAlert("Lỗi", "Không thể tải dữ liệu dịch vụ: " + e.getMessage());
         }
     }
 
     private StackPane createMainPane() {
         StackPane mainPane = new StackPane();
         mainPane.setStyle("-fx-background-color: #f0f0f0;");
-        mainPane.setPrefSize(1120, 800);
 
-        // UserInfoBox
+        // User info display
         HBox userInfoBox;
         try {
             userInfoBox = UserInfoBox.createUserInfoBox();
         } catch (Exception e) {
-            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox = new HBox(new Label("Chưa đăng nhập"));
             userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
         }
         userInfoBox.setPrefSize(200, 50);
         userInfoBox.setMaxSize(200, 50);
-        StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
-        StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
-        // Thanh tìm kiếm
+        // Header
+        HBox header = new HBox();
+        header.setPadding(new Insets(10));
+        header.setStyle("-fx-background-color: #f0f0f0;");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        header.getChildren().addAll(spacer, userInfoBox);
+
+        // Search bar
         TextField searchField = new TextField();
-        searchField.setPromptText("Tìm kiếm dịch vụ...");
-        searchField.setPrefWidth(200);
+        searchField.setPromptText("Tìm theo mã, tên dịch vụ...");
+        searchField.setPrefWidth(300);
+        searchField.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
+
         Button searchButton = new Button("Tìm kiếm");
-        searchButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
+        searchButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+
+        // Add button
+        Button addButton = new Button("+ Thêm dịch vụ");
+        addButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+        addButton.setOnAction(e -> showDichVuForm(null));
+
+        HBox searchBox = new HBox(10, new Label("Tìm kiếm:"), searchField, searchButton, addButton);
+        searchBox.setAlignment(Pos.CENTER);
+        searchBox.setPadding(new Insets(10));
+
         searchButton.setOnAction(e -> {
             String keyword = searchField.getText().trim();
             try {
@@ -68,56 +86,41 @@ public class QLDichVu {
                     danhSachDichVu.addAll(dichVuDao.timKiemDichVu(keyword));
                 }
             } catch (Exception ex) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể tìm kiếm: " + ex.getMessage());
+                showAlert("Lỗi", "Không thể tìm kiếm: " + ex.getMessage());
             }
         });
 
-        // Nút thêm dịch vụ
-        Button addButton = new Button("+ Thêm dịch vụ");
-        addButton.setStyle(
-            "-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; " +
-            "-fx-padding: 6 12; -fx-background-radius: 6;"
-        );
-        addButton.setOnAction(e -> showDichVuForm(null));
+        searchField.setOnAction(e -> searchButton.fire());
 
-        HBox topControls = new HBox(10, addButton, searchField, searchButton);
-        topControls.setAlignment(Pos.CENTER_LEFT);
-        topControls.setPadding(new Insets(0, 20, 10, 20));
-
-        VBox topHeader = new VBox(topControls);
-        topHeader.setSpacing(10);
-        StackPane.setAlignment(topHeader, Pos.TOP_LEFT);
-
-        // Bảng dịch vụ
+        // Service table
         table = new TableView<>(danhSachDichVu);
-        table.setPrefWidth(1120);
-        table.setPrefHeight(740);
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
         TableColumn<DichVu, String> maDichVuCol = new TableColumn<>("Mã Dịch Vụ");
         maDichVuCol.setCellValueFactory(new PropertyValueFactory<>("maDichVu"));
-        maDichVuCol.setPrefWidth(150);
+        maDichVuCol.setMinWidth(100);
 
         TableColumn<DichVu, String> tenDichVuCol = new TableColumn<>("Tên Dịch Vụ");
         tenDichVuCol.setCellValueFactory(new PropertyValueFactory<>("tenDichVu"));
-        tenDichVuCol.setPrefWidth(200);
+        tenDichVuCol.setMinWidth(150);
 
         TableColumn<DichVu, String> moTaCol = new TableColumn<>("Mô Tả");
         moTaCol.setCellValueFactory(new PropertyValueFactory<>("moTa"));
-        moTaCol.setPrefWidth(300);
+        moTaCol.setMinWidth(200);
 
         TableColumn<DichVu, Double> giaCol = new TableColumn<>("Giá (VNĐ)");
         giaCol.setCellValueFactory(new PropertyValueFactory<>("gia"));
-        giaCol.setPrefWidth(150);
+        giaCol.setMinWidth(120);
 
         TableColumn<DichVu, String> trangThaiCol = new TableColumn<>("Trạng Thái");
         trangThaiCol.setCellValueFactory(new PropertyValueFactory<>("trangThai"));
-        trangThaiCol.setPrefWidth(100);
+        trangThaiCol.setMinWidth(120);
 
         TableColumn<DichVu, Void> editCol = new TableColumn<>("Sửa");
         editCol.setCellFactory(col -> new TableCell<>() {
             private final Button btnEdit = new Button("Sửa");
             {
-                btnEdit.setStyle("-fx-background-color: #FFA500; -fx-text-fill: white;");
+                btnEdit.setStyle("-fx-background-color: #FFA500; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
             }
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -130,13 +133,13 @@ public class QLDichVu {
                 }
             }
         });
-        editCol.setPrefWidth(100);
+        editCol.setMinWidth(100);
 
         TableColumn<DichVu, Void> deleteCol = new TableColumn<>("Xóa");
         deleteCol.setCellFactory(col -> new TableCell<>() {
             private final Button btnDelete = new Button("Xóa");
             {
-                btnDelete.setStyle("-fx-background-color: #FF0000; -fx-text-fill: white;");
+                btnDelete.setStyle("-fx-background-color: #FF0000; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
             }
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -156,12 +159,12 @@ public class QLDichVu {
                                 try {
                                     if (dichVuDao.xoaDichVu(dv.getMaDichVu())) {
                                         danhSachDichVu.remove(dv);
-                                        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã xóa dịch vụ thành công!");
+                                        showAlert("Thành công", "Đã xóa dịch vụ thành công!");
                                     } else {
-                                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể xóa dịch vụ!");
+                                        showAlert("Lỗi", "Không thể xóa dịch vụ!");
                                     }
                                 } catch (Exception ex) {
-                                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi khi xóa: " + ex.getMessage());
+                                    showAlert("Lỗi", "Lỗi khi xóa: " + ex.getMessage());
                                 }
                             }
                         });
@@ -169,16 +172,20 @@ public class QLDichVu {
                 }
             }
         });
-        deleteCol.setPrefWidth(100);
+        deleteCol.setMinWidth(100);
 
         table.getColumns().setAll(maDichVuCol, tenDichVuCol, moTaCol, giaCol, trangThaiCol, editCol, deleteCol);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        // Layout
+        VBox centerLayout = new VBox(15, searchBox, table);
+        centerLayout.setPadding(new Insets(20));
+        centerLayout.setAlignment(Pos.TOP_CENTER);
+        centerLayout.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
+                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
 
         BorderPane layout = new BorderPane();
-        layout.setTop(new HBox(topHeader, userInfoBox));
-        HBox.setHgrow(topHeader, Priority.ALWAYS);
-        HBox.setHgrow(userInfoBox, Priority.NEVER);
-        layout.setCenter(table);
+        layout.setTop(header);
+        layout.setCenter(centerLayout);
         layout.setPadding(new Insets(10));
 
         mainPane.getChildren().add(layout);
@@ -194,12 +201,10 @@ public class QLDichVu {
         VBox form = new VBox(10);
         form.setAlignment(Pos.CENTER);
         form.setPadding(new Insets(20));
-        form.setStyle(
-            "-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
-            "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);"
-        );
-        form.setMaxWidth(500);
-        form.setMaxHeight(400);
+        form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
+                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+        form.setMaxWidth(600);
+        form.setMaxHeight(600);
 
         Label title = new Label(titleText);
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 16;");
@@ -213,12 +218,11 @@ public class QLDichVu {
         boolean isEditMode = dichVu != null;
         VBox form = createCenteredForm(isEditMode ? "Sửa dịch vụ " + dichVu.getMaDichVu() : "Thêm dịch vụ mới");
 
-        // Tự động sinh mã dịch vụ từ DAO
         String maDichVuValue;
         try {
             maDichVuValue = isEditMode ? dichVu.getMaDichVu() : dichVuDao.getNextMaDichVu();
         } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể sinh mã dịch vụ: " + e.getMessage());
+            showAlert("Lỗi", "Không thể sinh mã dịch vụ: " + e.getMessage());
             return;
         }
         Label lblMaDichVu = new Label(maDichVuValue);
@@ -226,16 +230,20 @@ public class QLDichVu {
 
         TextField tfTenDichVu = new TextField(isEditMode ? dichVu.getTenDichVu() : "");
         tfTenDichVu.setPromptText("Tên dịch vụ...");
+        tfTenDichVu.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
         TextField tfMoTa = new TextField(isEditMode ? dichVu.getMoTa() : "");
         tfMoTa.setPromptText("Mô tả...");
+        tfMoTa.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
         TextField tfGia = new TextField(isEditMode ? String.valueOf(dichVu.getGia()) : "");
         tfGia.setPromptText("Giá (VD: 50000)...");
+        tfGia.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
         ChoiceBox<String> cbTrangThai = new ChoiceBox<>();
         cbTrangThai.getItems().addAll("Hoạt động", "Ngừng hoạt động");
         cbTrangThai.setValue(isEditMode ? dichVu.getTrangThai() : "Hoạt động");
+        cbTrangThai.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -249,7 +257,7 @@ public class QLDichVu {
         grid.add(new Label("Trạng Thái:"), 0, 4); grid.add(cbTrangThai, 1, 4);
 
         Button btnLuu = new Button("Lưu");
-        btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
+        btnLuu.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
         btnLuu.setOnAction(e -> {
             String maDichVu = maDichVuValue;
             String tenDichVu = tfTenDichVu.getText();
@@ -257,9 +265,8 @@ public class QLDichVu {
             String giaText = tfGia.getText();
             String trangThai = cbTrangThai.getValue();
 
-            // Validation
             if (tenDichVu.isEmpty() || giaText.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng điền đầy đủ thông tin (trừ mô tả)!");
+                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin (trừ mô tả)!");
                 return;
             }
 
@@ -267,11 +274,11 @@ public class QLDichVu {
             try {
                 gia = Double.parseDouble(giaText);
                 if (gia < 0) {
-                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá phải là số không âm!");
+                    showAlert("Lỗi", "Giá phải là số không âm!");
                     return;
                 }
             } catch (NumberFormatException ex) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá phải là số hợp lệ!");
+                showAlert("Lỗi", "Giá phải là số hợp lệ!");
                 return;
             }
 
@@ -281,9 +288,9 @@ public class QLDichVu {
                 if (!isEditMode) {
                     if (dichVuDao.themDichVu(newDichVu)) {
                         danhSachDichVu.add(newDichVu);
-                        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã thêm dịch vụ mới!");
+                        showAlert("Thành công", "Đã thêm dịch vụ mới!");
                     } else {
-                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể thêm dịch vụ!");
+                        showAlert("Lỗi", "Không thể thêm dịch vụ!");
                         return;
                     }
                 } else {
@@ -291,20 +298,20 @@ public class QLDichVu {
                         int index = danhSachDichVu.indexOf(dichVu);
                         danhSachDichVu.set(index, newDichVu);
                         table.refresh();
-                        showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã cập nhật thông tin dịch vụ!");
+                        showAlert("Thành công", "Đã cập nhật thông tin dịch vụ!");
                     } else {
-                        showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể cập nhật dịch vụ!");
+                        showAlert("Lỗi", "Không thể cập nhật dịch vụ!");
                         return;
                     }
                 }
                 contentPane.getChildren().setAll(mainPane);
             } catch (Exception ex) {
-                showAlert(Alert.AlertType.ERROR, "Lỗi", "Đã xảy ra lỗi khi lưu dữ liệu: " + ex.getMessage());
+                showAlert("Lỗi", "Đã xảy ra lỗi khi lưu dữ liệu: " + ex.getMessage());
             }
         });
 
         Button btnHuy = new Button("Hủy");
-        btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12;");
+        btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
         btnHuy.setOnAction(e -> contentPane.getChildren().setAll(mainPane));
 
         HBox footer = new HBox(10, btnLuu, btnHuy);
@@ -314,8 +321,8 @@ public class QLDichVu {
         contentPane.getChildren().setAll(form);
     }
 
-    private void showAlert(Alert.AlertType type, String title, String message) {
-        Alert alert = new Alert(type);
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(title.equals("Lỗi") ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

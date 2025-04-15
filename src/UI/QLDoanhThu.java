@@ -1,23 +1,33 @@
 package UI;
 
+import dao.ChitietHoaDon_Dao;
+import dao.HoaDon_Dao;
+import dao.KhachHang_Dao;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.chart.PieChart;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import model.ChitietHoaDon;
 import model.HoaDon;
+import model.KhachHang;
+
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class QLDoanhThu {
     private final ObservableList<HoaDon> hoaDonList;
+    private final ObservableList<ChitietHoaDon> chitietHoaDonList;
     private PieChart pieChart;
     private Label lblRevenueRoom;
     private Label lblDoanhThuDichVu;
@@ -25,10 +35,17 @@ public class QLDoanhThu {
     private Label lblTitle;
     private StackPane contentPane;
     private StackPane mainPane;
+    private DatePicker datePicker;
+    private final DataManager dataManager;
+    private final HoaDon_Dao hoaDonDao;
+    private final ChitietHoaDon_Dao chitietHoaDonDao;
 
     public QLDoanhThu() {
-        DataManager dataManager = DataManager.getInstance();
+        dataManager = DataManager.getInstance();
         this.hoaDonList = dataManager.getHoaDonList();
+        this.chitietHoaDonList = dataManager.getChitietHoaDonList();
+        this.hoaDonDao = new HoaDon_Dao();
+        this.chitietHoaDonDao = new ChitietHoaDon_Dao();
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
         dataManager.addHoaDonListChangeListener(this::updateDataOnChange);
@@ -38,13 +55,14 @@ public class QLDoanhThu {
         StackPane mainPane = new StackPane();
         mainPane.setStyle("-fx-background-color: white;");
 
-        // UserInfoBox
-        HBox userInfoBox;
-        try {
-            userInfoBox = UserInfoBox.createUserInfoBox();
-        } catch (Exception e) {
-            userInfoBox = new HBox(new Label("User Info Placeholder"));
-            userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
+        // User info display
+        HBox userInfoBox = new HBox();
+        userInfoBox.setPadding(new Insets(10));
+        userInfoBox.setAlignment(Pos.CENTER);
+        if (dataManager.getCurrentNhanVien() != null) {
+            userInfoBox.getChildren().add(new Label("Nhân viên: " + dataManager.getCurrentNhanVien().getTenNhanVien()));
+        } else {
+            userInfoBox.getChildren().add(new Label("Chưa đăng nhập"));
         }
         userInfoBox.setPrefSize(200, 50);
         userInfoBox.setMaxSize(200, 50);
@@ -54,7 +72,7 @@ public class QLDoanhThu {
         // DatePicker
         Label lblThoiGian = new Label("Chọn ngày:");
         lblThoiGian.setStyle("-fx-font-weight: bold;");
-        DatePicker datePicker = new DatePicker(LocalDate.now());
+        datePicker = new DatePicker(LocalDate.now());
         datePicker.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
         HBox dateBox = new HBox(10, lblThoiGian, datePicker);
         dateBox.setAlignment(Pos.CENTER);
@@ -137,7 +155,7 @@ public class QLDoanhThu {
         revenueLabel.setStyle("-fx-font-size: 14px;");
 
         VBox box = new VBox(5, titleBox, revenueLabel);
-        box.setStyle("-fx-background-color: #ffffff; -fx-border-color: #d3d3d3; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);");
+        box.setStyle("-fx-background-color: #ffffff; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10;");
         box.setPrefWidth(250);
         box.setAlignment(Pos.CENTER);
         return box;
@@ -161,15 +179,29 @@ public class QLDoanhThu {
 
         double doanhThuPhong = 0;
         double doanhThuDichVu = 0;
+        double totalThueVat = 0;
+        double totalChietKhau = 0;
+
+        LocalDateTime start = selectedDate.atStartOfDay();
+        LocalDateTime end = selectedDate.atTime(23, 59, 59);
 
         for (HoaDon hoaDon : hoaDonList) {
-            if (hoaDon.getNgayLap() != null && hoaDon.getNgayLap().toLocalDate().equals(selectedDate) && "Đã thanh toán".equals(hoaDon.getTrangThai())) {
-                doanhThuPhong += hoaDon.getTienPhong();
-                doanhThuDichVu += hoaDon.getTienDichVu();
+            if (hoaDon.getTrangThai() && !hoaDon.getNgayLap().isBefore(start) && !hoaDon.getNgayLap().isAfter(end)) {
+                for (ChitietHoaDon ct : chitietHoaDonList) {
+                    if (ct.getMaHoaDon().equals(hoaDon.getMaHoaDon())) {
+                        double subTotal = ct.getTienPhong() + ct.getTienDichVu();
+                        double vatAmount = subTotal * (ct.getThueVat() / 100);
+                        double discountAmount = subTotal * (ct.getKhuyenMai() / 100);
+                        doanhThuPhong += ct.getTienPhong();
+                        doanhThuDichVu += ct.getTienDichVu();
+                        totalThueVat += vatAmount;
+                        totalChietKhau += discountAmount;
+                    }
+                }
             }
         }
 
-        double tongDoanhThu = doanhThuPhong + doanhThuDichVu;
+        double tongDoanhThu = doanhThuPhong + doanhThuDichVu + totalThueVat - totalChietKhau;
 
         lblRevenueRoom.setText(String.format("%,.0f VNĐ", doanhThuPhong));
         lblDoanhThuDichVu.setText(String.format("%,.0f VNĐ", doanhThuDichVu));
@@ -187,7 +219,6 @@ public class QLDoanhThu {
     }
 
     private void updateDataOnChange() {
-        DatePicker datePicker = (DatePicker) ((HBox) ((VBox) ((BorderPane) mainPane.getChildren().get(0)).getTop()).getChildren().get(0)).getChildren().get(1);
         updateData(datePicker.getValue());
     }
 
@@ -204,37 +235,60 @@ public class QLDoanhThu {
 
         TableView<HoaDon> table = new TableView<>();
         table.setPrefHeight(300);
+
         TableColumn<HoaDon, String> maHoaDonCol = new TableColumn<>("Mã Hóa Đơn");
-        maHoaDonCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getMaHoaDon()));
-        maHoaDonCol.setPrefWidth(100);
+        maHoaDonCol.setCellValueFactory(new PropertyValueFactory<>("maHoaDon"));
+        maHoaDonCol.setMinWidth(100);
+
         TableColumn<HoaDon, String> tenKhachHangCol = new TableColumn<>("Khách Hàng");
-        tenKhachHangCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTenKhachHang()));
-        tenKhachHangCol.setPrefWidth(150);
+        tenKhachHangCol.setCellValueFactory(cellData -> {
+            try {
+                KhachHang khachHang = dataManager.getKhachHangList().stream()
+                        .filter(kh -> kh.getMaKhachHang().equals(cellData.getValue().getMaKhachHang()))
+                        .findFirst().orElse(null);
+                return new SimpleStringProperty(khachHang != null ? khachHang.getTenKhachHang() : "Không xác định");
+            } catch (Exception e) {
+                return new SimpleStringProperty("Lỗi truy vấn");
+            }
+        });
+        tenKhachHangCol.setMinWidth(150);
+
+        TableColumn<HoaDon, Double> tienPhongCol = new TableColumn<>("Tiền Phòng");
+        tienPhongCol.setCellValueFactory(cellData -> {
+            String maHoaDon = cellData.getValue().getMaHoaDon();
+            double total = chitietHoaDonList.stream()
+                    .filter(ct -> maHoaDon.equals(ct.getMaHoaDon()))
+                    .mapToDouble(ChitietHoaDon::getTienPhong)
+                    .sum();
+            return new javafx.beans.property.SimpleObjectProperty<>(total);
+        });
+        tienPhongCol.setMinWidth(120);
+
+        TableColumn<HoaDon, Double> tienDichVuCol = new TableColumn<>("Tiền Dịch Vụ");
+        tienDichVuCol.setCellValueFactory(cellData -> {
+            String maHoaDon = cellData.getValue().getMaHoaDon();
+            double total = chitietHoaDonList.stream()
+                    .filter(ct -> maHoaDon.equals(ct.getMaHoaDon()))
+                    .mapToDouble(ChitietHoaDon::getTienDichVu)
+                    .sum();
+            return new javafx.beans.property.SimpleObjectProperty<>(total);
+        });
+        tienDichVuCol.setMinWidth(120);
+
+        TableColumn<HoaDon, String> ngayLapCol = new TableColumn<>("Ngày Lập");
+        ngayLapCol.setCellValueFactory(cellData -> {
+            LocalDateTime ngayLap = cellData.getValue().getNgayLap();
+            return new SimpleStringProperty(ngayLap != null ? ngayLap.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "");
+        });
+        ngayLapCol.setMinWidth(150);
 
         if ("room".equals(reportType)) {
-            TableColumn<HoaDon, Double> tienPhongCol = new TableColumn<>("Tiền Phòng (VNĐ)");
-            tienPhongCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTienPhong()).asObject());
-            tienPhongCol.setPrefWidth(120);
-            table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, tienPhongCol);
+            table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, tienPhongCol, ngayLapCol);
         } else if ("service".equals(reportType)) {
-            TableColumn<HoaDon, Double> tienDichVuCol = new TableColumn<>("Tiền DV (VNĐ)");
-            tienDichVuCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTienDichVu()).asObject());
-            tienDichVuCol.setPrefWidth(120);
-            table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, tienDichVuCol);
+            table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, tienDichVuCol, ngayLapCol);
         } else {
-            TableColumn<HoaDon, Double> tienPhongCol = new TableColumn<>("Tiền Phòng (VNĐ)");
-            tienPhongCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTienPhong()).asObject());
-            tienPhongCol.setPrefWidth(120);
-            TableColumn<HoaDon, Double> tienDichVuCol = new TableColumn<>("Tiền DV (VNĐ)");
-            tienDichVuCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTienDichVu()).asObject());
-            tienDichVuCol.setPrefWidth(120);
-            table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, tienPhongCol, tienDichVuCol);
+            table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, tienPhongCol, tienDichVuCol, ngayLapCol);
         }
-
-        TableColumn<HoaDon, LocalDateTime> ngayLapCol = new TableColumn<>("Ngày Lập");
-        ngayLapCol.setCellValueFactory(cellData -> new javafx.beans.property.SimpleObjectProperty<>(cellData.getValue().getNgayLap()));
-        ngayLapCol.setPrefWidth(150);
-        table.getColumns().add(ngayLapCol);
 
         Label totalLabel = new Label("Tổng số tiền: 0 VNĐ");
         totalLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
@@ -252,18 +306,38 @@ public class QLDoanhThu {
             ObservableList<HoaDon> reportData = FXCollections.observableArrayList();
             double totalAmount = 0;
 
+            LocalDateTime startTime = start.atStartOfDay();
+            LocalDateTime endTime = end.atTime(23, 59, 59);
+
             for (HoaDon hoaDon : hoaDonList) {
-                if (hoaDon.getNgayLap() != null && !hoaDon.getNgayLap().toLocalDate().isBefore(start) && 
-                    !hoaDon.getNgayLap().toLocalDate().isAfter(end) && "Đã thanh toán".equals(hoaDon.getTrangThai())) {
-                    if ("room".equals(reportType) && hoaDon.getTienPhong() > 0) {
+                if (hoaDon.getTrangThai() && !hoaDon.getNgayLap().isBefore(startTime) && !hoaDon.getNgayLap().isAfter(endTime)) {
+                    double tienPhong = chitietHoaDonList.stream()
+                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
+                            .mapToDouble(ChitietHoaDon::getTienPhong)
+                            .sum();
+                    double tienDichVu = chitietHoaDonList.stream()
+                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
+                            .mapToDouble(ChitietHoaDon::getTienDichVu)
+                            .sum();
+                    double subTotal = tienPhong + tienDichVu;
+                    double vatAmount = chitietHoaDonList.stream()
+                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
+                            .mapToDouble(ct -> (ct.getTienPhong() + ct.getTienDichVu()) * ct.getThueVat() / 100)
+                            .sum();
+                    double discountAmount = chitietHoaDonList.stream()
+                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
+                            .mapToDouble(ct -> (ct.getTienPhong() + ct.getTienDichVu()) * ct.getKhuyenMai() / 100)
+                            .sum();
+
+                    if ("room".equals(reportType) && tienPhong > 0) {
                         reportData.add(hoaDon);
-                        totalAmount += hoaDon.getTienPhong();
-                    } else if ("service".equals(reportType) && hoaDon.getTienDichVu() > 0) {
+                        totalAmount += tienPhong + (tienPhong * vatAmount / subTotal) - (tienPhong * discountAmount / subTotal);
+                    } else if ("service".equals(reportType) && tienDichVu > 0) {
                         reportData.add(hoaDon);
-                        totalAmount += hoaDon.getTienDichVu();
+                        totalAmount += tienDichVu + (tienDichVu * vatAmount / subTotal) - (tienDichVu * discountAmount / subTotal);
                     } else if ("total".equals(reportType)) {
                         reportData.add(hoaDon);
-                        totalAmount += hoaDon.getTienPhong() + hoaDon.getTienDichVu();
+                        totalAmount += subTotal + vatAmount - discountAmount;
                     }
                 }
             }

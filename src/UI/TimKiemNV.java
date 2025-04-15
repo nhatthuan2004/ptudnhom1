@@ -59,8 +59,13 @@ public class TimKiemNV {
 
         // Table
         TableView<NhanVien> table = new TableView<>();
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setStyle("-fx-border-color: #d3d3d3; -fx-background-radius: 5; -fx-border-radius: 5;");
+
+        ScrollPane scrollPane = new ScrollPane(table);
+        scrollPane.setFitToHeight(true);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
         TableColumn<NhanVien, String> colMaNhanVien = new TableColumn<>("Mã Nhân Viên");
         colMaNhanVien.setCellValueFactory(new PropertyValueFactory<>("maNhanVien"));
@@ -87,15 +92,15 @@ public class TimKiemNV {
         colTrangThai.setPrefWidth(100);
 
         table.getColumns().addAll(colMaNhanVien, colTenNhanVien, colSoDienThoai, colDiaChi, colChucVu, colTrangThai);
-        table.setItems(danhSachNhanVien); // Hiển thị toàn bộ danh sách ban đầu
+        table.setItems(danhSachNhanVien);
 
         // Content layout
-        VBox content = new VBox(15, title, searchBox, table);
+        VBox content = new VBox(15, title, searchBox, scrollPane);
         content.setPadding(new Insets(20));
         content.setAlignment(Pos.TOP_CENTER);
         content.setStyle(
                 "-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
-        VBox.setVgrow(table, Priority.ALWAYS);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
 
         BorderPane layout = new BorderPane();
         layout.setCenter(content);
@@ -106,7 +111,7 @@ public class TimKiemNV {
             String keyword = txtTimKiem.getText().trim().toLowerCase();
             ObservableList<NhanVien> ketQua = FXCollections.observableArrayList();
             if (keyword.isEmpty()) {
-                ketQua.addAll(danhSachNhanVien); // Hiển thị tất cả nếu không có từ khóa
+                ketQua.addAll(danhSachNhanVien);
             } else {
                 for (NhanVien nv : danhSachNhanVien) {
                     if (nv.getMaNhanVien().toLowerCase().contains(keyword)

@@ -12,16 +12,18 @@ import javafx.scene.text.FontWeight;
 import model.NhanVien;
 
 public class UserInfoBox {
-    private static NhanVien currentUser; // Lưu người dùng hiện tại
+    private static NhanVien currentUser;
 
-    // Thiết lập người dùng hiện tại
     public static void setCurrentUser(NhanVien user) {
         currentUser = user;
     }
 
-    // Lấy người dùng hiện tại
     public static NhanVien getCurrentUser() {
         return currentUser;
+    }
+
+    public static boolean isManager() {
+        return currentUser != null && currentUser.getChucVu().equalsIgnoreCase("Quan ly");
     }
 
     public static HBox createUserInfoBox() {
@@ -29,21 +31,19 @@ public class UserInfoBox {
             throw new IllegalStateException("Người dùng chưa được đăng nhập");
         }
 
-        // Xử lý tải hình ảnh avatar với fallback
         Image avatarImage;
         try {
             avatarImage = new Image(UserInfoBox.class.getResourceAsStream("/img/iconuser.png"));
             if (avatarImage.isError()) throw new Exception("Image load failed");
         } catch (Exception e) {
             System.err.println("Không tìm thấy iconuser.png: " + e.getMessage());
-            avatarImage = new Image("https://via.placeholder.com/40?text=User"); // Hình ảnh thay thế
+            avatarImage = new Image("https://via.placeholder.com/40?text=User");
         }
         ImageView avatar = new ImageView(avatarImage);
         avatar.setFitWidth(40);
         avatar.setFitHeight(40);
 
-        // Hiển thị tên và chức vụ từ currentUser
-        Label name = new Label(currentUser.getTenNhanVien()); // Sử dụng getTenNhanVien thay vì getHoTen
+        Label name = new Label(currentUser.getTenNhanVien());
         name.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
         Label role = new Label(currentUser.getChucVu());
