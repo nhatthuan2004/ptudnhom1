@@ -1,72 +1,96 @@
 package model;
 
-import javafx.collections.FXCollections;
+import java.util.ArrayList;
+import java.util.List;
+
+import javafx.beans.property.*;
 import javafx.collections.ObservableList;
 
 public class NhanVien {
-    private String maNhanVien, tenNhanVien, soDienThoai, diaChi, chucVu, taiKhoan, matKhau, trangThai;
-    private boolean gioiTinh;
-    private double luong;
-    private ObservableList<HoaDon> danhSachHoaDon = FXCollections.observableArrayList();
+    private final StringProperty maNhanVien = new SimpleStringProperty();
+    private final StringProperty tenNhanVien = new SimpleStringProperty();
+    private final StringProperty soDienThoai = new SimpleStringProperty();
+    private final BooleanProperty gioiTinh = new SimpleBooleanProperty();
+    private final StringProperty diaChi = new SimpleStringProperty();
+    private final StringProperty chucVu = new SimpleStringProperty();
+    private final DoubleProperty luong = new SimpleDoubleProperty();
+    private List<HoaDon> hoaDonList;
 
-    public NhanVien(String maNhanVien, String tenNhanVien, String soDienThoai, boolean gioiTinh, 
-                    String diaChi, String chucVu, double luong, String taiKhoan, String matKhau, String trangThai) {
-        this.maNhanVien = maNhanVien;
-        this.tenNhanVien = tenNhanVien;
-        this.soDienThoai = soDienThoai;
-        this.gioiTinh = gioiTinh;
-        this.diaChi = diaChi;
-        this.chucVu = chucVu;
-        this.luong = luong;
-        this.taiKhoan = taiKhoan;
-        this.matKhau = matKhau;
-        this.trangThai = trangThai;
+    public NhanVien() {
+        this.hoaDonList = new ArrayList<>(); // Khởi tạo danh sách rỗng
     }
 
-    // Phương thức addHoaDon đã chỉnh sửa để phù hợp với DataManager
-    public void addHoaDon(HoaDon hoaDon, ObservableList<HoaDon> hoaDonList) {
-        if (hoaDon != null) {
-            // Thêm hóa đơn vào danh sách chung nếu chưa có
-            if (!hoaDonList.contains(hoaDon)) {
-                hoaDonList.add(hoaDon);
-            }
-            // Thêm hóa đơn vào danh sách cá nhân của nhân viên nếu chưa có
-            if (!danhSachHoaDon.contains(hoaDon)) {
-                danhSachHoaDon.add(hoaDon);
-            }
+    public NhanVien(String maNhanVien, String tenNhanVien, String soDienThoai, boolean gioiTinh,
+                    String diaChi, String chucVu, double luong) {
+        this.hoaDonList = new ArrayList<>(); // Khởi tạo danh sách rỗng
+        setMaNhanVien(maNhanVien);
+        setTenNhanVien(tenNhanVien);
+        setSoDienThoai(soDienThoai);
+        setGioiTinh(gioiTinh);
+        setDiaChi(diaChi);
+        setChucVu(chucVu);
+        setLuong(luong);
+    }
+
+    public String getMaNhanVien() { return maNhanVien.get(); }
+    public StringProperty maNhanVienProperty() { return maNhanVien; }
+    public void setMaNhanVien(String maNhanVien) {
+        this.maNhanVien.set(maNhanVien != null && !maNhanVien.trim().isEmpty() ? maNhanVien : null);
+    }
+
+    public String getTenNhanVien() { return tenNhanVien.get(); }
+    public StringProperty tenNhanVienProperty() { return tenNhanVien; }
+    public void setTenNhanVien(String tenNhanVien) {
+        if (tenNhanVien == null || tenNhanVien.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên nhân viên không được để trống.");
+        }
+        this.tenNhanVien.set(tenNhanVien);
+    }
+
+    public String getSoDienThoai() { return soDienThoai.get(); }
+    public StringProperty soDienThoaiProperty() { return soDienThoai; }
+    public void setSoDienThoai(String soDienThoai) {
+        this.soDienThoai.set(soDienThoai != null && soDienThoai.matches("\\d{10,11}") ? soDienThoai : null);
+    }
+
+    public boolean isGioiTinh() { return gioiTinh.get(); }
+    public BooleanProperty gioiTinhProperty() { return gioiTinh; }
+    public void setGioiTinh(boolean gioiTinh) {
+        this.gioiTinh.set(gioiTinh);
+    }
+
+    public String getDiaChi() { return diaChi.get(); }
+    public StringProperty diaChiProperty() { return diaChi; }
+    public void setDiaChi(String diaChi) {
+        this.diaChi.set(diaChi != null ? diaChi : null);
+    }
+
+    public String getChucVu() { return chucVu.get(); }
+    public StringProperty chucVuProperty() { return chucVu; }
+    public void setChucVu(String chucVu) {
+        this.chucVu.set(chucVu != null && !chucVu.trim().isEmpty() ? chucVu : null);
+    }
+
+    public double getLuong() { return luong.get(); }
+    public DoubleProperty luongProperty() { return luong; }
+    public void setLuong(double luong) {
+        this.luong.set(luong >= 0 ? luong : 0);
+    }
+
+    public List<HoaDon> getHoaDonList() {
+        if (hoaDonList == null) {
+            hoaDonList = new ArrayList<>();
+        }
+        return hoaDonList;
+    }
+
+    public void setHoaDonList(List<HoaDon> hoaDonList) {
+        this.hoaDonList = (hoaDonList != null) ? hoaDonList : new ArrayList<>();
+    }
+
+    public void addHoaDon(HoaDon hoaDon, ObservableList<HoaDon> hoaDonListExternal) {
+        if (hoaDon != null && !this.hoaDonList.contains(hoaDon)) {
+            this.hoaDonList.add(hoaDon);
         }
     }
-
-    // Getters và setters
-    public String getMaNhanVien() { return maNhanVien; }
-    public void setMaNhanVien(String maNhanVien) { this.maNhanVien = maNhanVien; }
-
-    public String getTenNhanVien() { return tenNhanVien; }
-    public void setTenNhanVien(String tenNhanVien) { this.tenNhanVien = tenNhanVien; }
-
-    public String getSoDienThoai() { return soDienThoai; }
-    public void setSoDienThoai(String soDienThoai) { this.soDienThoai = soDienThoai; }
-
-    public boolean isGioiTinh() { return gioiTinh; }
-    public void setGioiTinh(boolean gioiTinh) { this.gioiTinh = gioiTinh; }
-
-    public String getDiaChi() { return diaChi; }
-    public void setDiaChi(String diaChi) { this.diaChi = diaChi; }
-
-    public String getChucVu() { return chucVu; }
-    public void setChucVu(String chucVu) { this.chucVu = chucVu; }
-
-    public double getLuong() { return luong; }
-    public void setLuong(double luong) { this.luong = luong; }
-
-    public String getTaiKhoan() { return taiKhoan; }
-    public void setTaiKhoan(String taiKhoan) { this.taiKhoan = taiKhoan; }
-
-    public String getMatKhau() { return matKhau; }
-    public void setMatKhau(String matKhau) { this.matKhau = matKhau; }
-
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
-
-    public ObservableList<HoaDon> getDanhSachHoaDon() { return danhSachHoaDon; }
 }

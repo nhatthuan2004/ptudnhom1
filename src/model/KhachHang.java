@@ -1,68 +1,119 @@
 package model;
 
-import javafx.collections.FXCollections;
+import javafx.beans.property.*;
 import javafx.collections.ObservableList;
+
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class KhachHang {
-    private String maKhachHang, tenKhachHang, soDienThoai, email, diaChi, cccd, quocTich, gioiTinh;
-    private LocalDate ngaySinh;
-    private ObservableList<HoaDon> danhSachHoaDon = FXCollections.observableArrayList();
+    private final StringProperty maKhachHang = new SimpleStringProperty();
+    private final StringProperty tenKhachHang = new SimpleStringProperty();
+    private final StringProperty soDienThoai = new SimpleStringProperty();
+    private final StringProperty email = new SimpleStringProperty();
+    private final StringProperty diaChi = new SimpleStringProperty();
+    private final StringProperty cccd = new SimpleStringProperty();
+    private final ObjectProperty<LocalDate> ngaySinh = new SimpleObjectProperty<>();
+    private final StringProperty quocTich = new SimpleStringProperty();
+    private final StringProperty gioiTinh = new SimpleStringProperty();
+    private List<HoaDon> hoaDonList;
 
-    public KhachHang(String maKhachHang, String tenKhachHang, String soDienThoai, String email, 
+ 
+
+    public KhachHang(String maKhachHang, String tenKhachHang, String soDienThoai, String email,
                      String diaChi, String cccd, LocalDate ngaySinh, String quocTich, String gioiTinh) {
-        this.maKhachHang = maKhachHang;
-        this.tenKhachHang = tenKhachHang;
-        this.soDienThoai = soDienThoai;
-        this.email = email;
-        this.diaChi = diaChi;
-        this.cccd = cccd;
-        this.ngaySinh = ngaySinh;
-        this.quocTich = quocTich;
-        this.gioiTinh = gioiTinh;
+        setMaKhachHang(maKhachHang);
+        setTenKhachHang(tenKhachHang);
+        setSoDienThoai(soDienThoai);
+        setEmail(email);
+        setDiaChi(diaChi);
+        setCccd(cccd);
+        setNgaySinh(ngaySinh);
+        setQuocTich(quocTich);
+        setGioiTinh(gioiTinh);
     }
 
-    // Phương thức addHoaDon đã chỉnh sửa để phù hợp với DataManager
-    public void addHoaDon(HoaDon hoaDon, ObservableList<HoaDon> hoaDonList) {
-        if (hoaDon != null) {
-            // Thêm hóa đơn vào danh sách chung nếu chưa có
-            if (!hoaDonList.contains(hoaDon)) {
-                hoaDonList.add(hoaDon);
-            }
-            // Thêm hóa đơn vào danh sách cá nhân của khách hàng nếu chưa có
-            if (!danhSachHoaDon.contains(hoaDon)) {
-                danhSachHoaDon.add(hoaDon);
-            }
+    public String getMaKhachHang() { return maKhachHang.get(); }
+    public StringProperty maKhachHangProperty() { return maKhachHang; }
+    public void setMaKhachHang(String maKhachHang) {
+        this.maKhachHang.set(maKhachHang != null && !maKhachHang.trim().isEmpty() ? maKhachHang : null);
+    }
+
+    public String getTenKhachHang() { return tenKhachHang.get(); }
+    public StringProperty tenKhachHangProperty() { return tenKhachHang; }
+    public void setTenKhachHang(String tenKhachHang) {
+        if (tenKhachHang == null || tenKhachHang.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên khách hàng không được để trống.");
         }
+        this.tenKhachHang.set(tenKhachHang);
     }
 
-    // Getters và setters
-    public String getMaKhachHang() { return maKhachHang; }
-    public void setMaKhachHang(String maKhachHang) { this.maKhachHang = maKhachHang; }
+    public String getSoDienThoai() { return soDienThoai.get(); }
+    public StringProperty soDienThoaiProperty() { return soDienThoai; }
+    public void setSoDienThoai(String soDienThoai) {
+        this.soDienThoai.set(soDienThoai != null && soDienThoai.matches("\\d{10,11}") ? soDienThoai : null);
+    }
 
-    public String getTenKhachHang() { return tenKhachHang; }
-    public void setTenKhachHang(String tenKhachHang) { this.tenKhachHang = tenKhachHang; }
+    public String getEmail() { return email.get(); }
+    public StringProperty emailProperty() { return email; }
+    public void setEmail(String email) {
+        this.email.set(email != null && email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$") ? email : null);
+    }
 
-    public String getSoDienThoai() { return soDienThoai; }
-    public void setSoDienThoai(String soDienThoai) { this.soDienThoai = soDienThoai; }
+    public String getDiaChi() { return diaChi.get(); }
+    public StringProperty diaChiProperty() { return diaChi; }
+    public void setDiaChi(String diaChi) {
+        this.diaChi.set(diaChi != null ? diaChi : null);
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getCccd() { return cccd.get(); }
+    public StringProperty cccdProperty() { return cccd; }
+    public void setCccd(String cccd) {
+        this.cccd.set(cccd != null && cccd.matches("\\d{9,12}") ? cccd : null);
+    }
 
-    public String getDiaChi() { return diaChi; }
-    public void setDiaChi(String diaChi) { this.diaChi = diaChi; }
+    public LocalDate getNgaySinh() { return ngaySinh.get(); }
+    public ObjectProperty<LocalDate> ngaySinhProperty() { return ngaySinh; }
+    public void setNgaySinh(LocalDate ngaySinh) {
+        this.ngaySinh.set(ngaySinh != null && !ngaySinh.isAfter(LocalDate.now()) ? ngaySinh : null);
+    }
 
-    public String getCccd() { return cccd; }
-    public void setCccd(String cccd) { this.cccd = cccd; }
+    public String getQuocTich() { return quocTich.get(); }
+    public StringProperty quocTichProperty() { return quocTich; }
+    public void setQuocTich(String quocTich) {
+        this.quocTich.set(quocTich != null ? quocTich : null);
+    }
 
-    public LocalDate getNgaySinh() { return ngaySinh; }
-    public void setNgaySinh(LocalDate ngaySinh) { this.ngaySinh = ngaySinh; }
+    public String getGioiTinh() { return gioiTinh.get(); }
+    public StringProperty gioiTinhProperty() { return gioiTinh; }
+    public void setGioiTinh(String gioiTinh) {
+        this.gioiTinh.set(gioiTinh != null && (gioiTinh.equals("Nam") || gioiTinh.equals("Nữ")) ? gioiTinh : null);
+    }
 
-    public String getQuocTich() { return quocTich; }
-    public void setQuocTich(String quocTich) { this.quocTich = quocTich; }
+    public List<HoaDon> getHoaDonList() {
+        if (hoaDonList == null) {
+            hoaDonList = new ArrayList<>();
+        }
+        return hoaDonList;
+    }
 
-    public String getGioiTinh() { return gioiTinh; }
-    public void setGioiTinh(String gioiTinh) { this.gioiTinh = gioiTinh; }
 
-    public ObservableList<HoaDon> getDanhSachHoaDon() { return danhSachHoaDon; }
+	public void addHoaDon(HoaDon hoaDon, ObservableList<HoaDon> hoaDonList) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public List<HoaDon> getHoaDonList1() {
+	    if (hoaDonList == null) {
+	        hoaDonList = new ArrayList<>();
+	    }
+	    return hoaDonList;
+	}
+
+	public void setHoaDonList(List<HoaDon> hoaDonList) {
+        this.hoaDonList = (hoaDonList != null) ? new ArrayList<>(hoaDonList) : new ArrayList<>();
+    }
+
+
 }

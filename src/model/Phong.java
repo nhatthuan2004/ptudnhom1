@@ -3,63 +3,74 @@ package model;
 import javafx.beans.property.*;
 
 public class Phong {
-    private final StringProperty maPhong;
-    private final StringProperty loaiPhong;
-    private final DoubleProperty giaPhong;
-    private final StringProperty trangThai;
-    private final StringProperty donDep;
-    private final StringProperty viTri;
-    private final IntegerProperty soNguoiToiDa;
-    private final StringProperty moTa;
+    private final StringProperty maPhong = new SimpleStringProperty();
+    private final StringProperty loaiPhong = new SimpleStringProperty();
+    private final DoubleProperty giaPhong = new SimpleDoubleProperty();
+    private final StringProperty trangThai = new SimpleStringProperty();
+    private final StringProperty donDep = new SimpleStringProperty();
+    private final StringProperty viTri = new SimpleStringProperty();
+    private final IntegerProperty soNguoiToiDa = new SimpleIntegerProperty();
+    private final StringProperty moTa = new SimpleStringProperty();
+
+    public Phong() {}
+
     public Phong(String maPhong, String loaiPhong, double giaPhong, String trangThai,
                  String donDep, String viTri, int soNguoiToiDa, String moTa) {
-        this.maPhong = new SimpleStringProperty(maPhong);
-        this.loaiPhong = new SimpleStringProperty(loaiPhong);
-        this.giaPhong = new SimpleDoubleProperty(giaPhong);
-        this.trangThai = new SimpleStringProperty(trangThai);
-        this.donDep = new SimpleStringProperty(donDep);
-        this.viTri = new SimpleStringProperty(viTri);
-        this.soNguoiToiDa = new SimpleIntegerProperty(soNguoiToiDa);
-        this.moTa = new SimpleStringProperty(moTa);
+        setMaPhong(maPhong);
+        setLoaiPhong(loaiPhong);
+        setGiaPhong(giaPhong);
+        setTrangThai(trangThai);
+        setDonDep(donDep);
+        setViTri(viTri);
+        setSoNguoiToiDa(soNguoiToiDa);
+        setMoTa(moTa);
     }
 
-    // Getters
     public String getMaPhong() { return maPhong.get(); }
-    public String getLoaiPhong() { return loaiPhong.get(); }
-    public double getGiaPhong() { return giaPhong.get(); }
-    public String getTrangThai() { return trangThai.get(); }
-    public String getDonDep() { return donDep.get(); }
-    public String getViTri() { return viTri.get(); }
-    public int getSoNguoiToiDa() { return soNguoiToiDa.get(); }
-    public String getMoTa() { return moTa.get(); }
-
-    // Setters
-    public void setMaPhong(String value) { maPhong.set(value); }
-    public void setLoaiPhong(String value) { loaiPhong.set(value); }
-    public void setGiaPhong(double value) { giaPhong.set(value); }
-    public void setTrangThai(String value) { trangThai.set(value); }
-    public void setDonDep(String value) { donDep.set(value); }
-    public void setViTri(String value) { viTri.set(value); }
-    public void setSoNguoiToiDa(int value) { soNguoiToiDa.set(value); }
-    public void setMoTa(String value) { moTa.set(value); }
-
-    // JavaFX properties
     public StringProperty maPhongProperty() { return maPhong; }
+    public void setMaPhong(String maPhong) {
+        this.maPhong.set(maPhong != null && !maPhong.trim().isEmpty() ? maPhong : null);
+    }
+
+    public String getLoaiPhong() { return loaiPhong.get(); }
     public StringProperty loaiPhongProperty() { return loaiPhong; }
+    public void setLoaiPhong(String loaiPhong) {
+        this.loaiPhong.set(loaiPhong != null && !loaiPhong.trim().isEmpty() ? loaiPhong : null);
+    }
+
+    public double getGiaPhong() { return giaPhong.get(); }
     public DoubleProperty giaPhongProperty() { return giaPhong; }
+    public void setGiaPhong(double giaPhong) {
+        this.giaPhong.set(giaPhong >= 0 ? giaPhong : 0);
+    }
+
+    public String getTrangThai() { return trangThai.get(); }
     public StringProperty trangThaiProperty() { return trangThai; }
+    public void setTrangThai(String trangThai) {
+        this.trangThai.set(trangThai != null && (trangThai.equals("Trống") || trangThai.equals("Đã đặt") || trangThai.equals("Bảo trì")) ? trangThai : "Trống");
+    }
+
+    public String getDonDep() { return donDep.get(); }
     public StringProperty donDepProperty() { return donDep; }
+    public void setDonDep(String donDep) {
+        this.donDep.set(donDep != null && (donDep.equals("Sạch") || donDep.equals("Chưa dọn")) ? donDep : "Sạch");
+    }
+
+    public String getViTri() { return viTri.get(); }
     public StringProperty viTriProperty() { return viTri; }
+    public void setViTri(String viTri) {
+        this.viTri.set(viTri != null ? viTri : null);
+    }
+
+    public int getSoNguoiToiDa() { return soNguoiToiDa.get(); }
     public IntegerProperty soNguoiToiDaProperty() { return soNguoiToiDa; }
+    public void setSoNguoiToiDa(int soNguoiToiDa) {
+        this.soNguoiToiDa.set(soNguoiToiDa > 0 ? soNguoiToiDa : 1);
+    }
+
+    public String getMoTa() { return moTa.get(); }
     public StringProperty moTaProperty() { return moTa; }
-
-	public String getTenKhachHang() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public String getSoDienThoai() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    public void setMoTa(String moTa) {
+        this.moTa.set(moTa != null ? moTa : null);
+    }
 }
