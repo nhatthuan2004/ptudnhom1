@@ -1,17 +1,16 @@
-package connectDB;
+package ConnectDB;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class ConnectDB {
-    private static Connection con = null;
-    private static final ConnectDB instance = new ConnectDB();
-
-    // Kết nối SQL Server - chú ý đổi tên server nếu cần
-    private static final String URL = "jdbc:sqlserver://NhatThuan:1433;databaseName=Khachsan;encrypt=true;trustServerCertificate=true;";
+	private static final String URL = "jdbc:sqlserver://NhatThuan:1433;databaseName=Khachsan;encrypt=true;trustServerCertificate=true;";
     private static final String USER = "sa";
     private static final String PASSWORD = "123456";
+
+    // Singleton instance
+    private static final ConnectDB instance = new ConnectDB();
 
     private ConnectDB() {
         // Constructor private để đảm bảo Singleton
@@ -22,53 +21,34 @@ public class ConnectDB {
     }
 
     /**
-     * Kết nối đến CSDL nếu chưa kết nối hoặc kết nối đã đóng
+     * Tạo kết nối mới đến CSDL
      */
-    public Connection connect() {
+    public static Connection getConnection() throws SQLException {
         try {
-            if (con == null || con.isClosed()) {
-                Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-                con = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println("✅ Kết nối thành công đến CSDL.");
-            }
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+            System.out.println("✅ Kết nối thành công đến CSDL.");
+            return connection;
         } catch (ClassNotFoundException e) {
             System.err.println("❌ Không tìm thấy driver SQL Server.");
-            e.printStackTrace();
+            throw new SQLException("Driver not found", e);
         } catch (SQLException e) {
-            System.err.println("❌ Lỗi khi kết nối đến cơ sở dữ liệu.");
-            e.printStackTrace();
+            System.err.println("❌ Lỗi khi kết nối đến cơ sở dữ liệu: " + e.getMessage());
+            throw e;
         }
-        return con;
     }
 
     /**
-     * Ngắt kết nối CSDL
+     * Đóng kết nối (dùng trong try-with-resources nên không cần gọi thủ công)
      */
-    public void disconnect() {
-        if (con != null) {
+    public void closeConnection(Connection connection) {
+        if (connection != null) {
             try {
-                con.close();
-                con = null;
+                connection.close();
                 System.out.println("🔌 Kết nối đã đóng.");
             } catch (SQLException e) {
-                System.err.println("❌ Lỗi khi đóng kết nối.");
-                e.printStackTrace();
+                System.err.println("❌ Lỗi khi đóng kết nối: " + e.getMessage());
             }
         }
-    }
-
-    /**
-     * Lấy connection hiện tại
-     */
-    public static Connection getConnection() {
-        try {
-            if (con == null || con.isClosed()) {
-                return instance.connect();
-            }
-        } catch (SQLException e) {
-            System.err.println("❌ Lỗi khi kiểm tra trạng thái connection.");
-            e.printStackTrace();
-        }
-        return con;
     }
 }
