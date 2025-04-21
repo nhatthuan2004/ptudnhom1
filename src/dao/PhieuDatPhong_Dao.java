@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ConnectDB.ConnectDB;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class PhieuDatPhong_Dao {
     private final ConnectDB connectDB;
@@ -118,30 +120,52 @@ public class PhieuDatPhong_Dao {
         return list;
     }
 
-    // Lấy toàn bộ danh sách phiếu đặt phòng
-    public List<PhieuDatPhong> getAllPhieuDatPhong() throws SQLException {
-        List<PhieuDatPhong> list = new ArrayList<>();
-        String sql = "SELECT * FROM PhieuDatPhong";
+//    // Lấy toàn bộ danh sách phiếu đặt phòng
+//    public List<PhieuDatPhong> getAllPhieuDatPhong() throws SQLException {
+//        List<PhieuDatPhong> list = new ArrayList<>();
+//        String sql = "SELECT * FROM PhieuDatPhong";
+//        try (Connection conn = connectDB.getConnection();
+//             PreparedStatement ps = conn.prepareStatement(sql);
+//             ResultSet rs = ps.executeQuery()) {
+//            while (rs.next()) {
+//                PhieuDatPhong pdp = new PhieuDatPhong(
+//                        rs.getString("maDatPhong"),
+//                        rs.getDate("ngayDen") != null ? rs.getDate("ngayDen").toLocalDate() : null,
+//                        rs.getDate("ngayDi") != null ? rs.getDate("ngayDi").toLocalDate() : null,
+//                        rs.getDate("ngayDat") != null ? rs.getDate("ngayDat").toLocalDate() : null,
+//                        rs.getInt("soLuongNguoi"),
+//                        rs.getString("trangThai"),
+//                        rs.getString("maKhachHang"),
+//                        rs.getString("maHoaDon")
+//                );
+//                list.add(pdp);
+//            }
+//        }
+//        return list;
+//    }
+    public ObservableList<PhieuDatPhong> getAllPhieuDatPhong()throws SQLException {
+        ObservableList<PhieuDatPhong> result = FXCollections.observableArrayList();
+        String query = "SELECT * FROM PhieuDatPhong";
         try (Connection conn = connectDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                PhieuDatPhong pdp = new PhieuDatPhong(
+                PhieuDatPhong phieu = new PhieuDatPhong(
                         rs.getString("maDatPhong"),
-                        rs.getDate("ngayDen") != null ? rs.getDate("ngayDen").toLocalDate() : null,
-                        rs.getDate("ngayDi") != null ? rs.getDate("ngayDi").toLocalDate() : null,
-                        rs.getDate("ngayDat") != null ? rs.getDate("ngayDat").toLocalDate() : null,
+
+                        rs.getDate("ngayDen").toLocalDate(),
+                        rs.getDate("ngayDi").toLocalDate(),
+                        rs.getDate("ngayDat").toLocalDate(),
                         rs.getInt("soLuongNguoi"),
                         rs.getString("trangThai"),
                         rs.getString("maKhachHang"),
                         rs.getString("maHoaDon")
                 );
-                list.add(pdp);
+                result.add(phieu);
             }
         }
-        return list;
+        return result;
     }
-
     // Lấy danh sách phiếu đặt phòng theo trạng thái
     public List<PhieuDatPhong> getPhieuDatPhongByTrangThai(String trangThai) throws SQLException {
         List<PhieuDatPhong> list = new ArrayList<>();
@@ -182,4 +206,7 @@ public class PhieuDatPhong_Dao {
             return "DP001"; // Trả về mã đầu tiên nếu bảng rỗng
         }
     }
+
+
+    
 }

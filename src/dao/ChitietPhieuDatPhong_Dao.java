@@ -132,18 +132,14 @@ public class ChitietPhieuDatPhong_Dao {
         }
     }
 
-    // Gọi stored procedure sp_ChuyenPhong
-    public boolean chuyenPhong(String maDatPhong, String maPhongCu, String maPhongMoi, 
-                              String liDo, String maNhanVien) throws SQLException {
-        String sql = "{CALL sp_ChuyenPhong(?, ?, ?, ?, ?)}";
+
+    public void deleteChitietPhieuDatPhongByMaDatPhong(String maDatPhong) throws SQLException {
+        String sql = "DELETE FROM ChitietPhieuDatPhong WHERE maDatPhong = ?";
         try (Connection conn = connectDB.getConnection();
-             CallableStatement cs = conn.prepareCall(sql)) {
-            cs.setString(1, maDatPhong);
-            cs.setString(2, maPhongCu);
-            cs.setString(3, maPhongMoi);
-            cs.setString(4, liDo);
-            cs.setString(5, maNhanVien);
-            return cs.executeUpdate() > 0;
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maDatPhong);
+            stmt.executeUpdate();
         }
     }
+
 }
