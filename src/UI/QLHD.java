@@ -33,7 +33,7 @@ public class QLHD {
 
     public QLHD() {
         dataManager = DataManager.getInstance();
-        this.danhSachHoaDon = dataManager.getHoaDonList();
+        this.danhSachHoaDon = dataManager.getHoaDonList().filtered(hd -> hd.getTrangThai()); // Chỉ lấy hóa đơn đã thanh toán
         this.danhSachChitietHoaDon = dataManager.getChitietHoaDonList();
         this.danhSachKhachHang = dataManager.getKhachHangList();
         this.chitietHoaDonDao = new ChitietHoaDon_Dao();
@@ -82,7 +82,7 @@ public class QLHD {
         searchButton.setOnAction(e -> {
             String keyword = searchField.getText().trim().toLowerCase();
             if (keyword.isEmpty()) {
-                table.setItems(danhSachHoaDon);
+                table.setItems(danhSachHoaDon); // Hiển thị tất cả hóa đơn đã thanh toán
             } else {
                 ObservableList<HoaDon> filteredList = danhSachHoaDon.filtered(hd -> {
                     try {
@@ -170,7 +170,7 @@ public class QLHD {
             @Override
             protected void updateItem(Boolean item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty || item == null ? null : item ? "Đã thanh toán" : "Chưa thanh toán");
+                setText(empty || item == null ? null : "Đã thanh toán"); // Chỉ hiển thị "Đã thanh toán"
             }
         });
         trangThaiCol.setMinWidth(120);
@@ -190,37 +190,8 @@ public class QLHD {
         });
         ngayLapCol.setMinWidth(150);
 
-        TableColumn<HoaDon, Void> actionCol = new TableColumn<>("Hành Động");
-        actionCol.setCellFactory(col -> new TableCell<>() {
-            private final Button btnThanhToan = new Button("Thanh toán");
-            {
-                btnThanhToan.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
-            }
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow().getItem() == null || getTableRow().getItem().getTrangThai()) {
-                    setGraphic(null);
-                } else {
-                    setGraphic(btnThanhToan);
-                    btnThanhToan.setOnAction(e -> {
-                        HoaDon hd = getTableRow().getItem();
-                        try {
-                            hd.setTrangThai(true);
-                            dataManager.updateHoaDon(hd);
-                            showAlert("Thành công", "Hóa đơn " + hd.getMaHoaDon() + " đã được thanh toán!");
-                            table.refresh();
-                        } catch (SQLException ex) {
-                            showAlert("Lỗi", "Cập nhật trạng thái thất bại: " + ex.getMessage());
-                        }
-                    });
-                }
-            }
-        });
-        actionCol.setMinWidth(100);
-
         table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, moTaCol, tienPhongCol, tienDichVuCol,
-                hinhThucThanhToanCol, trangThaiCol, maKhachHangCol, maNhanVienCol, ngayLapCol, actionCol);
+                hinhThucThanhToanCol, trangThaiCol, maKhachHangCol, maNhanVienCol, ngayLapCol); // Bỏ cột hành động
 
         table.setRowFactory(tv -> {
             TableRow<HoaDon> row = new TableRow<>();
@@ -263,7 +234,7 @@ public class QLHD {
         Label maHoaDonLabel = new Label("Mã hóa đơn: " + hoaDon.getMaHoaDon());
         Label ngayLapLabel = new Label("Ngày lập: " + (hoaDon.getNgayLap() != null ? hoaDon.getNgayLap().format(formatter) : ""));
         Label hinhThucThanhToanLabel = new Label("Hình thức thanh toán: " + hoaDon.getHinhThucThanhToan());
-        Label trangThaiLabel = new Label("Trạng thái: " + (hoaDon.getTrangThai() ? "Đã thanh toán" : "Chưa thanh toán"));
+        Label trangThaiLabel = new Label("Trạng thái: Đã thanh toán"); // Chỉ hiển thị "Đã thanh toán"
         Label maKhachHangLabel = new Label("Mã khách hàng: " + hoaDon.getMaKhachHang());
         Label maNhanVienLabel = new Label("Mã nhân viên: " + hoaDon.getMaNhanVien());
 

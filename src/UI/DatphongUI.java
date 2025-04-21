@@ -365,12 +365,36 @@ public class DatphongUI {
         phongTrongList.clear();
         String searchText = tfTimKiem != null ? tfTimKiem.getText().trim().toLowerCase() : "";
 
+        // Nếu không chọn ngày, hiển thị tất cả phòng (trừ phòng Bảo Trì)
+        if (ngayDen == null || ngayDi == null) {
+            for (Phong phong : phongList) {
+                if (phong.getTrangThai() == null || !"Bảo Trì".equalsIgnoreCase(phong.getTrangThai())) {
+                    if (searchText.isEmpty() ||
+                            phong.getMaPhong().toLowerCase().contains(searchText) ||
+                            phong.getLoaiPhong().toLowerCase().contains(searchText) ||
+                            (phong.getViTri() != null && phong.getViTri().toLowerCase().contains(searchText))) {
+                        phongTrongList.add(phong);
+                    }
+                }
+            }
+            return;
+        }
+
+        // Kiểm tra từng phòng xem có khả dụng trong khoảng ngày chọn không
         for (Phong phong : phongList) {
-            if (!"Trống".equalsIgnoreCase(phong.getTrangThai())) {
+            // Bỏ qua phòng Bảo Trì
+            if (phong.getTrangThai() != null && "Bảo Trì".equalsIgnoreCase(phong.getTrangThai())) {
                 continue;
             }
 
             boolean isAvailable = true;
+
+            // Bỏ qua các phòng đã được chọn để tránh hiển thị lại
+            if (phongDaChonList.contains(phong)) {
+                continue;
+            }
+
+            // Kiểm tra các phiếu đặt phòng trùng lặp
             for (ChitietPhieuDatPhong chitiet : chitietPhieuDatPhongList) {
                 if (chitiet.getMaPhong().equals(phong.getMaPhong())) {
                     PhieuDatPhong phieu = phieuDatPhongList.stream()
@@ -380,7 +404,8 @@ public class DatphongUI {
                     if (phieu != null && !"Đã hủy".equalsIgnoreCase(phieu.getTrangThai())) {
                         LocalDate phieuNgayDen = phieu.getNgayDen();
                         LocalDate phieuNgayDi = phieu.getNgayDi();
-                        if (ngayDen != null && ngayDi != null && phieuNgayDen != null && phieuNgayDi != null) {
+                        if (phieuNgayDen != null && phieuNgayDi != null) {
+                            // Kiểm tra trùng lặp: khoảng thời gian trùng nếu ngayDen <= phieuNgayDi và phieuNgayDen <= ngayDi
                             if (!(ngayDi.isBefore(phieuNgayDen) || ngayDen.isAfter(phieuNgayDi))) {
                                 isAvailable = false;
                                 break;
@@ -390,6 +415,7 @@ public class DatphongUI {
                 }
             }
 
+            // Thêm phòng vào danh sách nếu khả dụng và khớp với tìm kiếm
             if (isAvailable) {
                 if (searchText.isEmpty() ||
                         phong.getMaPhong().toLowerCase().contains(searchText) ||
@@ -407,11 +433,11 @@ public class DatphongUI {
             return;
         }
 
-        if (!phongDaChonList.contains(selectedPhong) && "Trống".equalsIgnoreCase(selectedPhong.getTrangThai())) {
+        if (!phongDaChonList.contains(selectedPhong)) {
             phongDaChonList.add(selectedPhong);
             phongTrongList.remove(selectedPhong);
         } else {
-            showAlert("Lỗi", "Phòng đã được chọn hoặc không còn trống.");
+            showAlert("Lỗi", "Phòng đã được chọn.");
         }
     }
 
@@ -422,9 +448,7 @@ public class DatphongUI {
         }
 
         phongDaChonList.remove(selectedPhong);
-        if ("Trống".equalsIgnoreCase(selectedPhong.getTrangThai())) {
-            phongTrongList.add(selectedPhong);
-        }
+        updatePhongTrongList(dpNgayDen.getValue(), dpNgayDi.getValue());
     }
 
     private void handleSave() {
@@ -582,21 +606,8 @@ public class DatphongUI {
 
             dataManager.addPhieuDatPhong(phieuDatPhong);
 
-            // Update room status and create booking details
+            // Create booking details (không cập nhật trạng thái phòng)
             for (Phong phong : phongDaChonList) {
-                Phong updatedPhong = new Phong(
-                        phong.getMaPhong(),
-                        phong.getLoaiPhong(),
-                        phong.getGiaPhong(),
-                        "Đã đặt",
-                        phong.getDonDep(),
-                        phong.getViTri(),
-                        phong.getSoNguoiToiDa(),
-                        phong.getMoTa()
-                );
-
-                dataManager.updatePhong(updatedPhong);
-
                 double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
                 ChitietPhieuDatPhong chiTiet = new ChitietPhieuDatPhong(
                         maDatPhong,

@@ -252,10 +252,7 @@ public class HomeUI extends Application {
                             QLdatphongUI qlDatPhongUI = new QLdatphongUI();
                             slidePane.getChildren().setAll(qlDatPhongUI.getUI());
                             break;
-                        case "Đổi phòng":
-                            DoiPhongUI doiPhongUI = new DoiPhongUI();
-                            slidePane.getChildren().setAll(doiPhongUI.getUI());
-                            break;
+                        
                         case "Tìm kiếm phòng":
                             TimkiemphongUI tkPhongUI = new TimkiemphongUI();
                             slidePane.getChildren().setAll(tkPhongUI.getUI());
