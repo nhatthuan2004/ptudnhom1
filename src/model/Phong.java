@@ -47,7 +47,7 @@ public class Phong {
     public String getTrangThai() { return trangThai.get(); }
     public StringProperty trangThaiProperty() { return trangThai; }
     public void setTrangThai(String trangThai) {
-        this.trangThai.set(trangThai != null && (trangThai.equals("Trống") || trangThai.equals("Đã đặt") || trangThai.equals("Bảo trì")) ? trangThai : "Trống");
+        this.trangThai.set(trangThai != null && (trangThai.equals("Trống") || trangThai.equals("Đã đặt") || trangThai.equals("Bảo Trì")) ? trangThai : "Trống");
     }
 
     public String getDonDep() { return donDep.get(); }

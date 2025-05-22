@@ -1,3 +1,4 @@
+
 package model;
 
 import javafx.beans.property.*;
@@ -7,16 +8,18 @@ public class ChitietPhieuDichVu {
     private final StringProperty maDichVu = new SimpleStringProperty();
     private final IntegerProperty soLuong = new SimpleIntegerProperty();
     private final DoubleProperty donGia = new SimpleDoubleProperty();
+    private final StringProperty maPhong = new SimpleStringProperty();
 
     // Constructor mặc định
     public ChitietPhieuDichVu() {}
 
     // Constructor đầy đủ
-    public ChitietPhieuDichVu(String maPhieuDichVu, String maDichVu, int soLuong, double donGia) {
+    public ChitietPhieuDichVu(String maPhieuDichVu, String maDichVu, int soLuong, double donGia, String maPhong) {
         setMaPhieuDichVu(maPhieuDichVu);
         setMaDichVu(maDichVu);
         setSoLuong(soLuong);
         setDonGia(donGia);
+        setMaPhong(maPhong);
     }
 
     // Getter và Setter cho maPhieuDichVu
@@ -71,6 +74,19 @@ public class ChitietPhieuDichVu {
         this.donGia.set(donGia >= 0 ? donGia : 0); // Đảm bảo đơn giá không âm
     }
 
+    // Getter và Setter cho maPhong
+    public String getMaPhong() {
+        return maPhong.get();
+    }
+
+    public StringProperty maPhongProperty() {
+        return maPhong;
+    }
+
+    public void setMaPhong(String maPhong) {
+        this.maPhong.set(maPhong != null ? maPhong.trim() : "");
+    }
+
     // Phương thức toString để dễ debug
     @Override
     public String toString() {
@@ -79,6 +95,7 @@ public class ChitietPhieuDichVu {
                 ", maDichVu=" + maDichVu.get() +
                 ", soLuong=" + soLuong.get() +
                 ", donGia=" + donGia.get() +
+                ", maPhong=" + maPhong.get() +
                 '}';
     }
 }

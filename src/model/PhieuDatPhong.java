@@ -17,8 +17,7 @@ public class PhieuDatPhong {
     private final StringProperty maHoaDon = new SimpleStringProperty();
     private final ObservableList<ChitietPhieuDatPhong> chitietPhieuDatPhongs = FXCollections.observableArrayList();
 
-    // Constructor mặc định
-    public PhieuDatPhong() {}
+
 
     // Constructor đầy đủ
     public PhieuDatPhong(String maDatPhong, LocalDate ngayDen, LocalDate ngayDi, LocalDate ngayDat,

@@ -11,13 +11,12 @@ public class PhieuDichVu {
     private final StringProperty maHoaDon = new SimpleStringProperty();
     private final ObjectProperty<LocalDate> ngayTao = new SimpleObjectProperty<>();
     private final ObservableList<ChitietPhieuDichVu> chitietPhieuDichVus = FXCollections.observableArrayList();
-
-    // Constructor mặc định
-    public PhieuDichVu() {}
+    private final StringProperty maDatPhong = new SimpleStringProperty();
 
     // Constructor đầy đủ
-    public PhieuDichVu(String maPhieuDichVu, String maHoaDon, LocalDate ngayTao) {
+    public PhieuDichVu(String maPhieuDichVu, String maDatPhong, String maHoaDon, LocalDate ngayTao) {
         setMaPhieuDichVu(maPhieuDichVu);
+        setMaDatPhong(maDatPhong);
         setMaHoaDon(maHoaDon);
         setNgayTao(ngayTao);
     }
@@ -79,11 +78,29 @@ public class PhieuDichVu {
         }
     }
 
+    // Getter và Setter cho maDatPhong
+    public String getMaDatPhong() {
+        if (maDatPhong == null) {
+            System.err.println("maDatPhong StringProperty is null!");
+            return null;
+        }
+        return maDatPhong.get();
+    }
+
+    public StringProperty maDatPhongProperty() {
+        return maDatPhong;
+    }
+
+    public void setMaDatPhong(String maDatPhong) {
+        this.maDatPhong.set(maDatPhong != null ? maDatPhong.trim() : "");
+    }
+
     // Phương thức toString để debug
     @Override
     public String toString() {
         return "PhieuDichVu{" +
                 "maPhieuDichVu=" + maPhieuDichVu.get() +
+                ", maDatPhong=" + maDatPhong.get() +
                 ", maHoaDon=" + maHoaDon.get() +
                 ", ngayTao=" + ngayTao.get() +
                 '}';

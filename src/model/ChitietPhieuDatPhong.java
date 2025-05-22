@@ -3,9 +3,8 @@ package model;
 import javafx.beans.property.*;
 
 public class ChitietPhieuDatPhong {
-	private final StringProperty maDatPhong = new SimpleStringProperty();
+    private final StringProperty maDatPhong = new SimpleStringProperty();
     private final StringProperty maPhong = new SimpleStringProperty();
-    
     private final StringProperty trangThai = new SimpleStringProperty();
     private final StringProperty moTa = new SimpleStringProperty();
     private final DoubleProperty tienPhong = new SimpleDoubleProperty();
@@ -14,8 +13,7 @@ public class ChitietPhieuDatPhong {
     private final IntegerProperty soLuong = new SimpleIntegerProperty();
     private final BooleanProperty daThanhToan = new SimpleBooleanProperty();
 
-
-    public ChitietPhieuDatPhong(String maDatPhong,String maPhong,  String trangThai, String moTa,
+    public ChitietPhieuDatPhong(String maDatPhong, String maPhong, String trangThai, String moTa,
                                 double tienPhong, double tienDichVu, double thanhTien, int soLuong, 
                                 boolean daThanhToan) {
         setMaDatPhong(maDatPhong);
@@ -29,25 +27,17 @@ public class ChitietPhieuDatPhong {
         setDaThanhToan(daThanhToan);
     }
 
-    
-
     public String getMaDatPhong() { return maDatPhong.get(); }
     public StringProperty maDatPhongProperty() { return maDatPhong; }
     public void setMaDatPhong(String maDatPhong) {
         this.maDatPhong.set(maDatPhong != null && !maDatPhong.trim().isEmpty() ? maDatPhong : null);
-	}
+    }
 
-	public String getMaPhong() {
-		return maPhong.get();
-	}
-
-	public StringProperty maPhongProperty() {
-		return maPhong;
-	}
-
-	public void setMaPhong(String maPhong) {
-		this.maPhong.set(maPhong != null && !maPhong.trim().isEmpty() ? maPhong : null);
-	}
+    public String getMaPhong() { return maPhong.get(); }
+    public StringProperty maPhongProperty() { return maPhong; }
+    public void setMaPhong(String maPhong) {
+        this.maPhong.set(maPhong != null && !maPhong.trim().isEmpty() ? maPhong : null);
+    }
 
     public String getTrangThai() { return trangThai.get(); }
     public StringProperty trangThaiProperty() { return trangThai; }
@@ -89,5 +79,15 @@ public class ChitietPhieuDatPhong {
     public BooleanProperty daThanhToanProperty() { return daThanhToan; }
     public void setDaThanhToan(boolean daThanhToan) {
         this.daThanhToan.set(daThanhToan);
+    }
+
+    // Sửa phương thức isDaThanhToan để trả về boolean
+    public boolean isDaThanhToan() {
+        return daThanhToan.get();
+    }
+
+    // Thêm phương thức isPaid cho rõ ràng (tùy chọn)
+    public boolean isPaid() {
+        return daThanhToan.get();
     }
 }
