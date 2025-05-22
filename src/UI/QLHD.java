@@ -1,23 +1,34 @@
 package UI;
 
 import dao.ChitietHoaDon_Dao;
+import dao.ChitietPhieuDatPhong_Dao;
+import dao.ChitietPhieuDichVu_Dao;
+import dao.DichVu_Dao;
 import dao.KhachHang_Dao;
 import dao.PhieuDatPhong_Dao;
+import dao.Phong_Dao;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.print.PrinterJob;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import model.ChitietHoaDon;
+import model.ChitietPhieuDatPhong;
+import model.ChitietPhieuDichVu;
+import model.DichVu;
 import model.HoaDon;
 import model.KhachHang;
-import model.KhuyenMai;
+import model.PhieuDatPhong;
+import model.Phong;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class QLHD {
     private final ObservableList<HoaDon> danhSachHoaDon;
@@ -33,7 +44,7 @@ public class QLHD {
 
     public QLHD() {
         dataManager = DataManager.getInstance();
-        this.danhSachHoaDon = dataManager.getHoaDonList().filtered(hd -> hd.getTrangThai()); // Chỉ lấy hóa đơn đã thanh toán
+        this.danhSachHoaDon = dataManager.getHoaDonList().filtered(hd -> hd.getTrangThai());
         this.danhSachChitietHoaDon = dataManager.getChitietHoaDonList();
         this.danhSachKhachHang = dataManager.getKhachHangList();
         this.chitietHoaDonDao = new ChitietHoaDon_Dao();
@@ -73,7 +84,8 @@ public class QLHD {
         searchField.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
 
         Button searchButton = new Button("Tìm kiếm");
-        searchButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+        searchButton.setStyle(
+                "-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
 
         HBox searchBox = new HBox(10, new Label("Tìm kiếm:"), searchField, searchButton);
         searchBox.setAlignment(Pos.CENTER);
@@ -82,15 +94,15 @@ public class QLHD {
         searchButton.setOnAction(e -> {
             String keyword = searchField.getText().trim().toLowerCase();
             if (keyword.isEmpty()) {
-                table.setItems(danhSachHoaDon); // Hiển thị tất cả hóa đơn đã thanh toán
+                table.setItems(danhSachHoaDon);
             } else {
                 ObservableList<HoaDon> filteredList = danhSachHoaDon.filtered(hd -> {
                     try {
                         KhachHang kh = khachHangDao.getKhachHangById(hd.getMaKhachHang());
                         String tenKhachHang = kh != null ? kh.getTenKhachHang().toLowerCase() : "";
-                        return hd.getMaHoaDon().toLowerCase().contains(keyword) ||
-                               hd.getMaKhachHang().toLowerCase().contains(keyword) ||
-                               tenKhachHang.contains(keyword);
+                        return hd.getMaHoaDon().toLowerCase().contains(keyword)
+                                || hd.getMaKhachHang().toLowerCase().contains(keyword)
+                                || tenKhachHang.contains(keyword);
                     } catch (SQLException ex) {
                         return false;
                     }
@@ -124,8 +136,9 @@ public class QLHD {
         moTaCol.setCellValueFactory(cellData -> {
             String maHoaDon = cellData.getValue().getMaHoaDon();
             StringBuilder moTa = new StringBuilder();
-            for (ChitietHoaDon ct : danhSachChitietHoaDon) {
-                if (maHoaDon.equals(ct.getMaHoaDon())) {
+            try {
+                List<ChitietHoaDon> cthdList = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(maHoaDon);
+                for (ChitietHoaDon ct : cthdList) {
                     if (ct.getMaPhong() != null) {
                         moTa.append("Phòng ").append(ct.getMaPhong()).append(", ");
                     }
@@ -133,30 +146,75 @@ public class QLHD {
                         moTa.append("Dịch vụ, ");
                     }
                 }
+            } catch (SQLException e) {
+                return new SimpleStringProperty("Lỗi truy vấn");
             }
-            return new SimpleStringProperty(moTa.length() > 0 ? moTa.substring(0, moTa.length() - 2) : "Không có chi tiết");
+            return new SimpleStringProperty(
+                    moTa.length() > 0 ? moTa.substring(0, moTa.length() - 2) : "Không có chi tiết");
         });
         moTaCol.setMinWidth(200);
 
         TableColumn<HoaDon, Double> tienPhongCol = new TableColumn<>("Tiền Phòng");
         tienPhongCol.setCellValueFactory(cellData -> {
             String maHoaDon = cellData.getValue().getMaHoaDon();
-            double total = danhSachChitietHoaDon.stream()
-                    .filter(ct -> maHoaDon.equals(ct.getMaHoaDon()))
-                    .mapToDouble(ChitietHoaDon::getTienPhong)
-                    .sum();
-            return new javafx.beans.property.SimpleObjectProperty<>(total);
+            try {
+                List<ChitietHoaDon> cthdList = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(maHoaDon);
+                double totalTienPhong = 0;
+                for (ChitietHoaDon cthd : cthdList) {
+                    if (cthd.getMaDatPhong() != null) {
+                        List<ChitietPhieuDatPhong> chiTietList = new ChitietPhieuDatPhong_Dao()
+                                .timKiemChitietPhieuDatPhong(cthd.getMaDatPhong());
+                        for (ChitietPhieuDatPhong ctp : chiTietList) {
+                            PhieuDatPhong phieu = phieuDatPhongDao.getPhieuDatPhongByMa(ctp.getMaDatPhong());
+                            long soNgay = phieu != null && phieu.getNgayDen() != null && phieu.getNgayDi() != null
+                                    ? Math.max(1,
+                                            java.time.temporal.ChronoUnit.DAYS.between(phieu.getNgayDen(),
+                                                    phieu.getNgayDi()))
+                                    : 1;
+                            totalTienPhong += ctp.getTienPhong() * soNgay;
+                        }
+                    }
+                }
+                return new javafx.beans.property.SimpleObjectProperty<>(totalTienPhong);
+            } catch (SQLException e) {
+                return new javafx.beans.property.SimpleObjectProperty<>(0.0);
+            }
+        });
+        tienPhongCol.setCellFactory(col -> new TableCell<HoaDon, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
         });
         tienPhongCol.setMinWidth(120);
 
         TableColumn<HoaDon, Double> tienDichVuCol = new TableColumn<>("Tiền Dịch Vụ");
         tienDichVuCol.setCellValueFactory(cellData -> {
             String maHoaDon = cellData.getValue().getMaHoaDon();
-            double total = danhSachChitietHoaDon.stream()
-                    .filter(ct -> maHoaDon.equals(ct.getMaHoaDon()))
-                    .mapToDouble(ChitietHoaDon::getTienDichVu)
-                    .sum();
-            return new javafx.beans.property.SimpleObjectProperty<>(total);
+            try {
+                List<ChitietHoaDon> cthdList = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(maHoaDon);
+                double totalTienDichVu = 0;
+                for (ChitietHoaDon cthd : cthdList) {
+                    if (cthd.getMaPhieuDichVu() != null) {
+                        List<ChitietPhieuDichVu> chiTietDVList = new ChitietPhieuDichVu_Dao()
+                                .timKiemChitietPhieuDichVu(cthd.getMaPhieuDichVu());
+                        for (ChitietPhieuDichVu ctdv : chiTietDVList) {
+                            totalTienDichVu += ctdv.getDonGia() * ctdv.getSoLuong();
+                        }
+                    }
+                }
+                return new javafx.beans.property.SimpleObjectProperty<>(totalTienDichVu);
+            } catch (SQLException e) {
+                return new javafx.beans.property.SimpleObjectProperty<>(0.0);
+            }
+        });
+        tienDichVuCol.setCellFactory(col -> new TableCell<HoaDon, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
         });
         tienDichVuCol.setMinWidth(120);
 
@@ -170,7 +228,7 @@ public class QLHD {
             @Override
             protected void updateItem(Boolean item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty || item == null ? null : "Đã thanh toán"); // Chỉ hiển thị "Đã thanh toán"
+                setText(empty || item == null ? null : "Đã thanh toán");
             }
         });
         trangThaiCol.setMinWidth(120);
@@ -186,12 +244,13 @@ public class QLHD {
         TableColumn<HoaDon, String> ngayLapCol = new TableColumn<>("Ngày Lập");
         ngayLapCol.setCellValueFactory(cellData -> {
             LocalDateTime ngayLap = cellData.getValue().getNgayLap();
-            return new SimpleStringProperty(ngayLap != null ? ngayLap.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "");
+            return new SimpleStringProperty(
+                    ngayLap != null ? ngayLap.format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")) : "");
         });
         ngayLapCol.setMinWidth(150);
 
         table.getColumns().addAll(maHoaDonCol, tenKhachHangCol, moTaCol, tienPhongCol, tienDichVuCol,
-                hinhThucThanhToanCol, trangThaiCol, maKhachHangCol, maNhanVienCol, ngayLapCol); // Bỏ cột hành động
+                hinhThucThanhToanCol, trangThaiCol, maKhachHangCol, maNhanVienCol, ngayLapCol);
 
         table.setRowFactory(tv -> {
             TableRow<HoaDon> row = new TableRow<>();
@@ -207,8 +266,8 @@ public class QLHD {
         VBox centerLayout = new VBox(15, searchBox, table);
         centerLayout.setPadding(new Insets(20));
         centerLayout.setAlignment(Pos.TOP_CENTER);
-        centerLayout.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
-                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+        centerLayout.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; "
+                + "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
 
         BorderPane layout = new BorderPane();
         layout.setTop(header);
@@ -225,90 +284,292 @@ public class QLHD {
     }
 
     private void showChiTietHoaDon(HoaDon hoaDon) {
-        VBox form = createCenteredForm("Chi tiết hóa đơn " + hoaDon.getMaHoaDon());
+        VBox form = new VBox(10);
+        form.setAlignment(Pos.CENTER);
+        form.setPadding(new Insets(20));
+        form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; "
+                + "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+        form.setMaxWidth(700);
 
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(10));
+        // Tiêu đề
+        Label title = new Label("HÓA ĐƠN THANH TOÁN");
+        title.setStyle("-fx-font-weight: bold; -fx-font-size: 20; -fx-text-fill: #d32f2f;");
+        Label maHoaDonLabel = new Label("Mã Hóa Đơn: " + hoaDon.getMaHoaDon());
+        maHoaDonLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16;");
 
+        // Thông tin khách hàng
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-        Label maHoaDonLabel = new Label("Mã hóa đơn: " + hoaDon.getMaHoaDon());
         Label ngayLapLabel = new Label("Ngày lập: " + (hoaDon.getNgayLap() != null ? hoaDon.getNgayLap().format(formatter) : ""));
-        Label hinhThucThanhToanLabel = new Label("Hình thức thanh toán: " + hoaDon.getHinhThucThanhToan());
-        Label trangThaiLabel = new Label("Trạng thái: Đã thanh toán"); // Chỉ hiển thị "Đã thanh toán"
         Label maKhachHangLabel = new Label("Mã khách hàng: " + hoaDon.getMaKhachHang());
-        Label maNhanVienLabel = new Label("Mã nhân viên: " + hoaDon.getMaNhanVien());
-
+        Label tenKhachHangLabel;
         try {
             KhachHang kh = khachHangDao.getKhachHangById(hoaDon.getMaKhachHang());
-            Label tenKhachHangLabel = new Label("Tên khách hàng: " + (kh != null ? kh.getTenKhachHang() : "Không xác định"));
-            content.getChildren().add(tenKhachHangLabel);
+            tenKhachHangLabel = new Label("Tên khách hàng: " + (kh != null ? kh.getTenKhachHang() : "Không xác định"));
         } catch (SQLException e) {
+            tenKhachHangLabel = new Label("Tên khách hàng: Lỗi truy vấn");
             showAlert("Lỗi", "Không thể tải thông tin khách hàng: " + e.getMessage());
         }
 
+        GridPane infoGrid = new GridPane();
+        infoGrid.setHgap(10);
+        infoGrid.setVgap(5);
+        infoGrid.addRow(0, new Label(""), maKhachHangLabel);
+        infoGrid.addRow(1, new Label(""), tenKhachHangLabel);
+        infoGrid.addRow(2, new Label(""), ngayLapLabel);
+
+        // Chi tiết phòng
+        Label roomTitle = new Label("CHI TIẾT PHÒNG");
+        roomTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-padding: 10 0 5 0;");
+
+        TableView<ChitietPhieuDatPhong> roomTable = new TableView<>();
+        roomTable.setSelectionModel(null); // Disable selection
+        roomTable.setMouseTransparent(true); // Disable mouse interaction
+        roomTable.setStyle("-fx-font-size: 12; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-background-color: #f9f9f9;");
+
+        TableColumn<ChitietPhieuDatPhong, String> roomCol = new TableColumn<>("Phòng");
+        roomCol.setCellValueFactory(new PropertyValueFactory<>("maPhong"));
+        roomCol.setMinWidth(80);
+
+        TableColumn<ChitietPhieuDatPhong, String> roomTypeCol = new TableColumn<>("Loại phòng");
+        roomTypeCol.setCellValueFactory(cellData -> {
+            String maPhong = cellData.getValue().getMaPhong();
+            try {
+                Phong phong = new Phong_Dao().getAllPhong().stream()
+                        .filter(p -> p.getMaPhong().equals(maPhong))
+                        .findFirst().orElse(null);
+                return new SimpleStringProperty(phong != null ? phong.getLoaiPhong() : "Không xác định");
+            } catch (SQLException e) {
+                return new SimpleStringProperty("Lỗi truy vấn");
+            }
+        });
+        roomTypeCol.setMinWidth(100);
+
+        TableColumn<ChitietPhieuDatPhong, Double> roomPriceCol = new TableColumn<>("Đơn giá");
+        roomPriceCol.setCellValueFactory(new PropertyValueFactory<>("tienPhong"));
+        roomPriceCol.setCellFactory(col -> new TableCell<ChitietPhieuDatPhong, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
+        });
+        roomPriceCol.setMinWidth(100);
+
+        TableColumn<ChitietPhieuDatPhong, Integer> daysCol = new TableColumn<>("Số ngày");
+        daysCol.setCellValueFactory(cellData -> {
+            try {
+                String maDatPhong = cellData.getValue().getMaDatPhong();
+                PhieuDatPhong phieu = phieuDatPhongDao.getPhieuDatPhongByMa(maDatPhong);
+                long soNgay = phieu != null && phieu.getNgayDen() != null && phieu.getNgayDi() != null
+                        ? Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(phieu.getNgayDen(), phieu.getNgayDi()))
+                        : 1;
+                return new javafx.beans.property.SimpleObjectProperty<>((int) soNgay);
+            } catch (SQLException e) {
+                return new javafx.beans.property.SimpleObjectProperty<>(1);
+            }
+        });
+        daysCol.setMinWidth(80);
+
+        TableColumn<ChitietPhieuDatPhong, Double> roomTotalCol = new TableColumn<>("Thành tiền");
+        roomTotalCol.setCellValueFactory(cellData -> {
+            double tienPhong = cellData.getValue().getTienPhong();
+            try {
+                String maDatPhong = cellData.getValue().getMaDatPhong();
+                PhieuDatPhong phieu = phieuDatPhongDao.getPhieuDatPhongByMa(maDatPhong);
+                long soNgay = phieu != null && phieu.getNgayDen() != null && phieu.getNgayDi() != null
+                        ? Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(phieu.getNgayDen(), phieu.getNgayDi()))
+                        : 1;
+                return new javafx.beans.property.SimpleObjectProperty<>(tienPhong * soNgay);
+            } catch (SQLException e) {
+                return new javafx.beans.property.SimpleObjectProperty<>(tienPhong);
+            }
+        });
+        roomTotalCol.setCellFactory(col -> new TableCell<ChitietPhieuDatPhong, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
+        });
+        roomTotalCol.setMinWidth(120);
+
+        roomTable.getColumns().addAll(roomCol, roomTypeCol, roomPriceCol, daysCol, roomTotalCol);
+
+        ObservableList<ChitietPhieuDatPhong> roomItems = FXCollections.observableArrayList();
+        ObservableList<ChitietHoaDon> cthdList = FXCollections.observableArrayList();
+        try {
+            cthdList.setAll(chitietHoaDonDao.getChiTietDichVuByMaHoaDon(hoaDon.getMaHoaDon()));
+            for (ChitietHoaDon cthd : cthdList) {
+                if (cthd.getMaDatPhong() != null) {
+                    List<ChitietPhieuDatPhong> chiTietList = new ChitietPhieuDatPhong_Dao().timKiemChitietPhieuDatPhong(cthd.getMaDatPhong());
+                    roomItems.addAll(chiTietList);
+                }
+            }
+        } catch (SQLException e) {
+            showAlert("Lỗi", "Không thể tải chi tiết phòng: " + e.getMessage());
+        }
+        roomTable.setItems(roomItems);
+        roomTable.setPrefHeight(30 + roomItems.size() * 30); // Adjust height to fit all rows
+
+        // Chi tiết dịch vụ
+        Label serviceTitle = new Label("CHI TIẾT DỊCH VỤ");
+        serviceTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-padding: 10 0 5 0;");
+
+        TableView<ChitietPhieuDichVu> serviceTable = new TableView<>();
+        serviceTable.setSelectionModel(null); // Disable selection
+        serviceTable.setMouseTransparent(true); // Disable mouse interaction
+        serviceTable.setStyle("-fx-font-size: 12; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-background-color: #f9f9f9;");
+
+        TableColumn<ChitietPhieuDichVu, String> serviceCol = new TableColumn<>("Dịch vụ");
+        serviceCol.setCellValueFactory(cellData -> {
+            try {
+                DichVu dichVu = new DichVu_Dao().getAllDichVu().stream()
+                        .filter(dv -> dv.getMaDichVu().equals(cellData.getValue().getMaDichVu()))
+                        .findFirst().orElse(null);
+                return new SimpleStringProperty(dichVu != null ? dichVu.getTenDichVu() : "Không xác định");
+            } catch (SQLException e) {
+                return new SimpleStringProperty("Lỗi truy vấn");
+            }
+        });
+        serviceCol.setMinWidth(100);
+
+        TableColumn<ChitietPhieuDichVu, String> serviceRoomCol = new TableColumn<>("Phòng sử dụng");
+        serviceRoomCol.setCellValueFactory(new PropertyValueFactory<>("maPhong"));
+        serviceRoomCol.setMinWidth(80);
+
+        TableColumn<ChitietPhieuDichVu, Double> servicePriceCol = new TableColumn<>("Đơn giá");
+        servicePriceCol.setCellValueFactory(new PropertyValueFactory<>("donGia"));
+        servicePriceCol.setCellFactory(col -> new TableCell<ChitietPhieuDichVu, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
+        });
+        servicePriceCol.setMinWidth(100);
+
+        TableColumn<ChitietPhieuDichVu, Integer> quantityCol = new TableColumn<>("Số lượng");
+        quantityCol.setCellValueFactory(new PropertyValueFactory<>("soLuong"));
+        quantityCol.setMinWidth(80);
+
+        TableColumn<ChitietPhieuDichVu, Double> serviceTotalCol = new TableColumn<>("Thành tiền");
+        serviceTotalCol.setCellValueFactory(cellData -> {
+            double total = cellData.getValue().getDonGia() * cellData.getValue().getSoLuong();
+            return new javafx.beans.property.SimpleObjectProperty<>(total);
+        });
+        serviceTotalCol.setCellFactory(col -> new TableCell<ChitietPhieuDichVu, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
+        });
+        serviceTotalCol.setMinWidth(120);
+
+        serviceTable.getColumns().addAll(serviceCol, serviceRoomCol, servicePriceCol, quantityCol, serviceTotalCol);
+
+        ObservableList<ChitietPhieuDichVu> serviceItems = FXCollections.observableArrayList();
+        try {
+            for (ChitietHoaDon cthd : cthdList) {
+                if (cthd.getMaPhieuDichVu() != null) {
+                    List<ChitietPhieuDichVu> chiTietDVList = new ChitietPhieuDichVu_Dao().timKiemChitietPhieuDichVu(cthd.getMaPhieuDichVu());
+                    serviceItems.addAll(chiTietDVList);
+                }
+            }
+        } catch (SQLException e) {
+            showAlert("Lỗi", "Không thể tải chi tiết dịch vụ: " + e.getMessage());
+        }
+        serviceTable.setItems(serviceItems);
+        serviceTable.setPrefHeight(30 + serviceItems.size() * 30); // Adjust height to fit all rows
+
+        // Khuyến mãi
         double tienPhong = 0;
         double tienDichVu = 0;
         double thueVat = 0;
         double khuyenMai = 0;
-        int soNgay = 0;
         String maChuongTrinhKhuyenMai = null;
 
-        for (ChitietHoaDon ct : danhSachChitietHoaDon) {
-            if (hoaDon.getMaHoaDon().equals(ct.getMaHoaDon())) {
-                tienPhong += ct.getTienPhong();
-                tienDichVu += ct.getTienDichVu();
-                if (ct.getMaPhong() != null) {
-                    thueVat = ct.getThueVat();
-                    khuyenMai = ct.getKhuyenMai();
-                    soNgay = Math.max(soNgay, ct.getSoNgay());
-                    if (ct.getMaChuongTrinhKhuyenMai() != null) {
-                        maChuongTrinhKhuyenMai = ct.getMaChuongTrinhKhuyenMai();
-                    }
+        if (!cthdList.isEmpty()) {
+            ChitietHoaDon ct = cthdList.get(0);
+            thueVat = ct.getThueVat();
+            khuyenMai = ct.getKhuyenMai();
+            maChuongTrinhKhuyenMai = ct.getMaChuongTrinhKhuyenMai();
+
+            for (ChitietPhieuDatPhong ctp : roomItems) {
+                try {
+                    PhieuDatPhong phieu = phieuDatPhongDao.getPhieuDatPhongByMa(ctp.getMaDatPhong());
+                    long soNgay = phieu != null && phieu.getNgayDen() != null && phieu.getNgayDi() != null
+                            ? Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(phieu.getNgayDen(), phieu.getNgayDi()))
+                            : 1;
+                    tienPhong += ctp.getTienPhong() * soNgay;
+                } catch (SQLException e) {
+                    showAlert("Lỗi", "Không thể tính tổng tiền phòng: " + e.getMessage());
                 }
             }
-        }
 
-        Label tienPhongLabel = new Label("Tiền phòng: " + String.format("%,.0f VNĐ", tienPhong));
-        Label tienDichVuLabel = new Label("Tiền dịch vụ: " + String.format("%,.0f VNĐ", tienDichVu));
-        Label thueVatLabel = new Label("Thuế VAT: " + String.format("%.1f%%", thueVat));
-        Label soNgayLabel = new Label("Số ngày lưu trú: " + soNgay);
-        Label khuyenMaiLabel = new Label("Chiết khấu: " + String.format("%.1f%%", khuyenMai));
-
-        if (maChuongTrinhKhuyenMai != null) {
-            final String finalMaChuongTrinhKhuyenMai = maChuongTrinhKhuyenMai;
-            try {
-                KhuyenMai km = dataManager.getKhuyenMaiList().stream()
-                        .filter(k -> k.getMaChuongTrinhKhuyenMai().equals(finalMaChuongTrinhKhuyenMai))
-                        .findFirst().orElse(null);
-                Label tenKhuyenMaiLabel = new Label("Chương trình KM: " + (km != null ? km.getTenChuongTrinhKhuyenMai() : finalMaChuongTrinhKhuyenMai));
-                content.getChildren().add(tenKhuyenMaiLabel);
-            } catch (Exception e) {
-                showAlert("Lỗi", "Không thể tải thông tin khuyến mãi: " + e.getMessage());
+            for (ChitietPhieuDichVu ctdv : serviceItems) {
+                tienDichVu += ctdv.getDonGia() * ctdv.getSoLuong();
             }
         }
 
-        double discountAmount = tienPhong * (khuyenMai / 100);
-        double subTotal = tienPhong + tienDichVu - discountAmount;
-        double vatAmount = subTotal * (thueVat / 100);
-        double finalTotal = subTotal + vatAmount;
+        Label promotionTitle = new Label("KHUYẾN MÃI ÁP DỤNG");
+        promotionTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-padding: 10 0 5 0;");
+        Label promotionLabel = new Label(maChuongTrinhKhuyenMai != null ? "Mã KM: " + maChuongTrinhKhuyenMai : "Không có khuyến mãi");
+        Label discountLabel = new Label("Giảm giá: " + String.format("%.1f%%", khuyenMai));
 
-        Label subTotalLabel = new Label("Tổng phụ: " + String.format("%,.0f VNĐ", tienPhong + tienDichVu));
-        Label discountAmountLabel = new Label("Tiền chiết khấu: " + String.format("%,.0f VNĐ", discountAmount));
-        Label vatAmountLabel = new Label("Tiền thuế VAT: " + String.format("%,.0f VNĐ", vatAmount));
+        // Tổng tiền
+        double subTotal = tienPhong + tienDichVu;
+        double discountAmount = subTotal * (khuyenMai / 100);
+        double vatAmount = (subTotal - discountAmount) * (thueVat / 100);
+        double finalTotal = subTotal - discountAmount + vatAmount;
+
+        Label totalTitle = new Label("TỔNG CỘNG");
+        totalTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-padding: 10 0 5 0;");
+        Label roomTotalLabel = new Label("Tổng tiền phòng: " + String.format("%,.0f VNĐ", tienPhong));
+        Label serviceTotalLabel = new Label("Tổng tiền dịch vụ: " + String.format("%,.0f VNĐ", tienDichVu));
+        Label discountTotalLabel = new Label("Tổng giảm giá: " + String.format("%,.0f VNĐ", discountAmount));
+        Label vatLabel = new Label("Thuế VAT (" + String.format("%.1f%%", thueVat) + "): " + String.format("%,.0f VNĐ", vatAmount));
         Label finalTotalLabel = new Label("Tổng tiền cuối: " + String.format("%,.0f VNĐ", finalTotal));
+        finalTotalLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #d32f2f;");
 
-        content.getChildren().addAll(maHoaDonLabel, ngayLapLabel, hinhThucThanhToanLabel, trangThaiLabel,
-                maKhachHangLabel, maNhanVienLabel, tienPhongLabel, tienDichVuLabel, thueVatLabel,
-                soNgayLabel, khuyenMaiLabel, subTotalLabel, discountAmountLabel, vatAmountLabel, finalTotalLabel);
+        // Chân trang
+        Label footerNote = new Label("Kính cảm ơn quý khách đã sử dụng dịch vụ!");
+        footerNote.setStyle("-fx-font-style: italic; -fx-padding: 10 0 0 0;");
+
+        // Nút In và Đóng
+        Button btnIn = new Button("In");
+        btnIn.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14; -fx-padding: 6 12; -fx-background-radius: 5;");
+        btnIn.setOnAction(e -> {
+            PrinterJob printerJob = PrinterJob.createPrinterJob();
+            if (printerJob != null && printerJob.showPrintDialog(form.getScene().getWindow())) {
+                boolean success = printerJob.printPage(form);
+                if (success) {
+                    printerJob.endJob();
+                    showAlert("Thành công", "Hóa đơn đã được in thành công!");
+                } else {
+                    showAlert("Lỗi", "Không thể in hóa đơn!");
+                }
+            }
+        });
 
         Button btnDong = new Button("Đóng");
-        btnDong.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+        btnDong.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14; -fx-padding: 6 12; -fx-background-radius: 5;");
         btnDong.setOnAction(e -> contentPane.getChildren().setAll(mainPane));
 
-        HBox footer = new HBox(btnDong);
-        footer.setAlignment(Pos.CENTER);
+        HBox footerButtons = new HBox(15, btnIn, btnDong);
+        footerButtons.setAlignment(Pos.CENTER);
+        footerButtons.setPadding(new Insets(20, 0, 0, 0));
 
-        form.getChildren().addAll(content, footer);
+        // Thêm các thành phần
+        form.getChildren().addAll(
+                title, maHoaDonLabel, infoGrid,
+                roomTitle, roomTable,
+                serviceTitle, serviceTable,
+                promotionTitle, promotionLabel, discountLabel,
+                totalTitle, roomTotalLabel, serviceTotalLabel, discountTotalLabel, vatLabel, finalTotalLabel,
+                footerNote, footerButtons
+        );
+
         contentPane.getChildren().setAll(form);
     }
 
@@ -316,10 +577,9 @@ public class QLHD {
         VBox form = new VBox(10);
         form.setAlignment(Pos.CENTER);
         form.setPadding(new Insets(20));
-        form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
-                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
-        form.setMaxWidth(600);
-        form.setMaxHeight(600);
+        form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; "
+                + "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+        form.setMaxWidth(700);
 
         Label title = new Label(titleText);
         title.setStyle("-fx-font-weight: bold; -fx-font-size: 16;");

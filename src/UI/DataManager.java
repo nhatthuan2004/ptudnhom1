@@ -43,7 +43,7 @@ public class DataManager {
     private final List<Runnable> chitietHoaDonListChangeListeners = new ArrayList<>();
     private final List<Runnable> phieuDichVuListChangeListeners = new ArrayList<>();
     private final List<Runnable> chitietPhieuDichVuListChangeListeners = new ArrayList<>();
-    private final List<Runnable> lichSuChuyenPhongListChangeListeners = new ArrayList<>(); // Thêm listener cho LichSuChuyenPhong
+    private final List<Runnable> lichSuChuyenPhongListChangeListeners = new ArrayList<>();
     private final KhachHang_Dao khachHangDao = new KhachHang_Dao();
     private final DichVu_Dao dichVuDao = new DichVu_Dao();
     private final KhuyenMai_Dao khuyenMaiDao = new KhuyenMai_Dao();
@@ -59,10 +59,7 @@ public class DataManager {
     private NhanVien currentNhanVien;
 
     private DataManager() {
-
-        // Thêm listener để thông báo khi danh sách thay đổi
-    	
-    	phongList.addListener((ListChangeListener<Phong>) change -> notifyListeners(phongListChangeListeners));
+        phongList.addListener((ListChangeListener<Phong>) change -> notifyListeners(phongListChangeListeners));
         hoaDonList.addListener((ListChangeListener<HoaDon>) change -> notifyListeners(hoaDonListChangeListeners));
         khachHangList.addListener((ListChangeListener<KhachHang>) change -> notifyListeners(khachHangListChangeListeners));
         dichVuList.addListener((ListChangeListener<DichVu>) change -> notifyListeners(dichVuListChangeListeners));
@@ -73,7 +70,6 @@ public class DataManager {
         chitietHoaDonList.addListener((ListChangeListener<ChitietHoaDon>) change -> notifyListeners(chitietHoaDonListChangeListeners));
         phieuDichVuList.addListener((ListChangeListener<PhieuDichVu>) change -> notifyListeners(phieuDichVuListChangeListeners));
         chitietPhieuDichVuList.addListener((ListChangeListener<ChitietPhieuDichVu>) change -> notifyListeners(chitietPhieuDichVuListChangeListeners));
-
     }
 
     public static synchronized DataManager getInstance() {
@@ -85,9 +81,7 @@ public class DataManager {
     }
 
     private void initializeData() {
-
         try {
-            // Tải danh sách tài khoản và kiểm tra tài khoản admin
             List<TaiKhoan> taiKhoanList = taiKhoanDao.getAllTaiKhoan();
             boolean adminExists = taiKhoanList.stream()
                     .anyMatch(tk -> tk.getTenDangNhap().equals("admin"));
@@ -96,51 +90,42 @@ public class DataManager {
                 String maNhanVien = nhanVienDao.getNextMaNhanVien();
                 NhanVien adminNhanVien = new NhanVien(
                         maNhanVien, "Admin", "0123456789", true,
-                        "123 Đường Admin, Quận 1", "Quản lý", 20000000.0
+                        "123 Admin Street, District 1", "Manager", 20000000.0
                 );
                 nhanVienDao.themNhanVien(adminNhanVien);
                 nhanVienList.add(adminNhanVien);
 
-                // Tạo tài khoản admin với mật khẩu đáp ứng yêu cầu
                 TaiKhoan adminTaiKhoan = new TaiKhoan("admin", "Admin123", maNhanVien);
                 taiKhoanDao.themTaiKhoan(adminTaiKhoan);
 
-                System.out.println("Đã tạo tài khoản admin mặc định: admin / Admin123");
+                System.out.println("Created default admin account: admin / Admin123");
             } else {
-                System.out.println("Tài khoản admin đã tồn tại.");
+                System.out.println("Admin account already exists.");
             }
 
-            // Tải danh sách nhân viên
-         // Tải danh sách nhân viên
             nhanVienList.setAll(nhanVienDao.getAllNhanVien());
             for (NhanVien nv : nhanVienList) {
                 if (nv.getHoaDonList() == null) {
                     nv.setHoaDonList(new ArrayList<>());
                 }
             }
-            System.out.println("Đã tải " + nhanVienList.size() + " nhân viên.");
+            System.out.println("Loaded " + nhanVienList.size() + " employees.");
 
-            // Tải danh sách phòng
             phongList.setAll(phongDao.getAllPhong());
-            System.out.println("Đã tải " + phongList.size() + " phòng.");
+            System.out.println("Loaded " + phongList.size() + " rooms.");
 
-            // Tải danh sách khách hàng
             khachHangList.setAll(khachHangDao.getAllKhachHang());
-            System.out.println("Đã tải " + khachHangList.size() + " khách hàng.");
+            System.out.println("Loaded " + khachHangList.size() + " customers.");
 
-            // Tải danh sách dịch vụ
             dichVuList.setAll(dichVuDao.getAllDichVu());
-            System.out.println("Đã tải " + dichVuList.size() + " dịch vụ.");
+            System.out.println("Loaded " + dichVuList.size() + " services.");
 
-            // Tải danh sách khuyến mãi
             khuyenMaiList.setAll(khuyenMaiDao.getAllKhuyenMai());
-            System.out.println("Đã tải " + khuyenMaiList.size() + " khuyến mãi.");
+            System.out.println("Loaded " + khuyenMaiList.size() + " promotions.");
 
-            // Tải danh sách phiếu đặt phòng
             phieuDatPhongList.setAll(phieuDatPhongDao.getAllPhieuDatPhong());
-            System.out.println("Đã tải " + phieuDatPhongList.size() + " phiếu đặt phòng.");
+            System.out.println("Loaded " + phieuDatPhongList.size() + " booking tickets.");
 
-            // Tải danh sách chi tiết phiếu đặt phòng
             chitietPhieuDatPhongList.setAll(chitietPhieuDatPhongDao.getAllChitietPhieuDatPhong());
             Map<String, PhieuDatPhong> phieuDatPhongMap = new HashMap<>();
             phieuDatPhongList.forEach(p -> phieuDatPhongMap.put(p.getMaDatPhong(), p));
@@ -150,9 +135,8 @@ public class DataManager {
                     pdp.addChitietPhieuDatPhong(ct);
                 }
             }
-            System.out.println("Đã tải " + chitietPhieuDatPhongList.size() + " chi tiết phiếu đặt phòng.");
+            System.out.println("Loaded " + chitietPhieuDatPhongList.size() + " booking ticket details.");
 
-            // Tải danh sách hóa đơn
             hoaDonList.setAll(hoaDonDao.getAllHoaDon());
             Map<String, KhachHang> khachHangMap = new HashMap<>();
             khachHangList.forEach(kh -> khachHangMap.put(kh.getMaKhachHang(), kh));
@@ -168,25 +152,27 @@ public class DataManager {
                     nv.addHoaDon(hd, hoaDonList);
                 }
             }
-            System.out.println("Đã tải " + hoaDonList.size() + " hóa đơn.");
+            System.out.println("Loaded " + hoaDonList.size() + " invoices.");
 
-            // Tải danh sách chi tiết hóa đơn
-            chitietHoaDonList.setAll(chitietHoaDonDao.getAllChitietHoaDon());
-            Map<String, HoaDon> hoaDonMap = new HashMap<>();
-            hoaDonList.forEach(hd -> hoaDonMap.put(hd.getMaHoaDon(), hd));
-            for (ChitietHoaDon cthd : chitietHoaDonList) {
-                HoaDon hd = hoaDonMap.get(cthd.getMaHoaDon());
-                if (hd != null) {
-                    hd.addChitietHoaDon(cthd);
+            try {
+                chitietHoaDonList.setAll(chitietHoaDonDao.getAllChitietHoaDon());
+                Map<String, HoaDon> hoaDonMap = new HashMap<>();
+                hoaDonList.forEach(hd -> hoaDonMap.put(hd.getMaHoaDon(), hd));
+                for (ChitietHoaDon cthd : chitietHoaDonList) {
+                    HoaDon hd = hoaDonMap.get(cthd.getMaHoaDon());
+                    if (hd != null) {
+                        hd.addChitietHoaDon(cthd);
+                    }
                 }
+                System.out.println("Loaded " + chitietHoaDonList.size() + " invoice details.");
+            } catch (SQLException e) {
+                System.err.println("Error loading invoice details: " + e.getMessage());
+                chitietHoaDonList.clear();
             }
-            System.out.println("Đã tải " + chitietHoaDonList.size() + " chi tiết hóa đơn.");
 
-            // Tải danh sách phiếu dịch vụ
             phieuDichVuList.setAll(phieuDichVuDao.getAllPhieuDichVu());
-            System.out.println("Đã tải " + phieuDichVuList.size() + " phiếu dịch vụ.");
+            System.out.println("Loaded " + phieuDichVuList.size() + " service tickets.");
 
-            // Tải danh sách chi tiết phiếu dịch vụ
             chitietPhieuDichVuList.setAll(chitietPhieuDichVuDao.getAllChitietPhieuDichVu());
             Map<String, PhieuDichVu> phieuDichVuMap = new HashMap<>();
             phieuDichVuList.forEach(pdv -> phieuDichVuMap.put(pdv.getMaPhieuDichVu(), pdv));
@@ -196,18 +182,15 @@ public class DataManager {
                     pdv.addChitietPhieuDichVu(ctpdv);
                 }
             }
-            System.out.println("Đã tải " + chitietPhieuDichVuList.size() + " chi tiết phiếu dịch vụ.");
-
-            
+            System.out.println("Loaded " + chitietPhieuDichVuList.size() + " service ticket details.");
 
         } catch (SQLException e) {
-            System.err.println("Lỗi khi tải dữ liệu từ cơ sở dữ liệu: " + e.getMessage());
+            System.err.println("Error loading data from database: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     public void refreshBookingData() throws SQLException {
-        // Làm mới danh sách phiếu đặt phòng và chi tiết
         phieuDatPhongList.clear();
         chitietPhieuDatPhongList.clear();
         phongList.clear();
@@ -216,7 +199,6 @@ public class DataManager {
         chitietPhieuDatPhongList.setAll(chitietPhieuDatPhongDao.getAllChitietPhieuDatPhong());
         phongList.setAll(phongDao.getAllPhong());
 
-        // Liên kết chi tiết phiếu đặt phòng với phiếu
         Map<String, PhieuDatPhong> phieuDatPhongMap = new HashMap<>();
         phieuDatPhongList.forEach(p -> phieuDatPhongMap.put(p.getMaDatPhong(), p));
         for (ChitietPhieuDatPhong ct : chitietPhieuDatPhongList) {
@@ -226,12 +208,12 @@ public class DataManager {
             }
         }
 
-        // Không gọi updatePhongStatusByDate để giữ trạng thái "Bảo Trì"
-        System.out.println("Đã làm mới dữ liệu đặt phòng và phòng, giữ nguyên trạng thái phòng từ cơ sở dữ liệu.");
+        System.out.println("Refreshed booking and room data, maintaining room status from database.");
         notifyListeners(phongListChangeListeners);
         notifyListeners(phieuDatPhongListChangeListeners);
         notifyListeners(chitietPhieuDatPhongListChangeListeners);
     }
+
     public boolean isUsernameTaken(String username) throws SQLException {
         if (username == null || username.trim().isEmpty()) {
             return false;
@@ -240,7 +222,6 @@ public class DataManager {
                 .anyMatch(tk -> tk.getTenDangNhap().equalsIgnoreCase(username.trim()));
     }
 
-    // Getters
     public ObservableList<Phong> getPhongList() { return phongList; }
     public ObservableList<HoaDon> getHoaDonList() { return hoaDonList; }
     public ObservableList<KhachHang> getKhachHangList() { return khachHangList; }
@@ -255,7 +236,6 @@ public class DataManager {
 
     public NhanVien getCurrentNhanVien() { return currentNhanVien; }
 
-    // Setters
     public void setPhongList(ObservableList<Phong> newPhongList) { phongList.setAll(newPhongList); }
     public void setHoaDonList(ObservableList<HoaDon> newHoaDonList) { hoaDonList.setAll(newHoaDonList); }
     public void setKhachHangList(ObservableList<KhachHang> newKhachHangList) { khachHangList.setAll(newKhachHangList); }
@@ -267,10 +247,9 @@ public class DataManager {
     public void setChitietHoaDonList(ObservableList<ChitietHoaDon> newChitietHoaDonList) { chitietHoaDonList.setAll(newChitietHoaDonList); }
     public void setPhieuDichVuList(ObservableList<PhieuDichVu> newPhieuDichVuList) { phieuDichVuList.setAll(newPhieuDichVuList); }
     public void setChitietPhieuDichVuList(ObservableList<ChitietPhieuDichVu> newChitietPhieuDichVuList) { chitietPhieuDichVuList.setAll(newChitietPhieuDichVuList); }
-  
+
     public void setCurrentNhanVien(NhanVien nhanVien) { this.currentNhanVien = nhanVien; }
 
-    // Thêm Listeners
     public void addPhongListChangeListener(Runnable listener) { phongListChangeListeners.add(listener); }
     public void addHoaDonListChangeListener(Runnable listener) { hoaDonListChangeListeners.add(listener); }
     public void addKhachHangListChangeListener(Runnable listener) { khachHangListChangeListeners.add(listener); }
@@ -282,12 +261,11 @@ public class DataManager {
     public void addChitietHoaDonListChangeListener(Runnable listener) { chitietHoaDonListChangeListeners.add(listener); }
     public void addPhieuDichVuListChangeListener(Runnable listener) { phieuDichVuListChangeListeners.add(listener); }
     public void addChitietPhieuDichVuListChangeListener(Runnable listener) { chitietPhieuDichVuListChangeListeners.add(listener); }
-    public void addLichSuChuyenPhongListChangeListener(Runnable listener) { lichSuChuyenPhongListChangeListeners.add(listener); } // Listener cho LichSuChuyenPhong
+    public void addLichSuChuyenPhongListChangeListener(Runnable listener) { lichSuChuyenPhongListChangeListeners.add(listener); }
 
-    // Thêm dữ liệu
     public void addPhong(Phong phong) throws SQLException {
         if (phong == null || phongList.stream().anyMatch(p -> p.getMaPhong().equals(phong.getMaPhong()))) {
-            throw new IllegalArgumentException("Phòng không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid room or room already exists!");
         }
         phongDao.themPhong(phong);
         phongList.add(phong);
@@ -295,17 +273,17 @@ public class DataManager {
 
     public void addHoaDon(HoaDon hoaDon) throws SQLException {
         if (hoaDon == null || hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(hoaDon.getMaHoaDon()))) {
-            throw new IllegalArgumentException("Hóa đơn không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid invoice or invoice already exists!");
         }
         if (!khachHangList.stream().anyMatch(kh -> kh.getMaKhachHang().equals(hoaDon.getMaKhachHang()))) {
-            throw new SQLException("Mã khách hàng không tồn tại!");
+            throw new SQLException("Customer ID does not exist!");
         }
         if (!nhanVienList.stream().anyMatch(nv -> nv.getMaNhanVien().equals(hoaDon.getMaNhanVien()))) {
-            throw new SQLException("Mã nhân viên không tồn tại!");
+            throw new SQLException("Employee ID does not exist!");
         }
         if (hoaDon.getMaKhuyenMai() != null && !((List<Phong>) hoaDon.getMaKhuyenMai()).isEmpty() &&
-            !khuyenMaiList.stream().anyMatch(km -> km.getMaChuongTrinhKhuyenMai().equals(hoaDon.getMaKhuyenMai()))) {
-            throw new SQLException("Mã khuyến mãi không tồn tại!");
+                !khuyenMaiList.stream().anyMatch(km -> km.getMaChuongTrinhKhuyenMai().equals(hoaDon.getMaKhuyenMai()))) {
+            throw new SQLException("Promotion ID does not exist!");
         }
         hoaDonDao.themHoaDon(hoaDon);
         hoaDonList.add(hoaDon);
@@ -321,11 +299,52 @@ public class DataManager {
         if (nv != null) {
             nv.addHoaDon(hoaDon, hoaDonList);
         }
+        System.out.println("Added invoice: " + hoaDon.getMaHoaDon());
+    }
+
+    public void updateHoaDon(HoaDon hoaDon) throws SQLException {
+        if (hoaDon == null) {
+            throw new IllegalArgumentException("Invalid invoice!");
+        }
+        if (!khachHangList.stream().anyMatch(kh -> kh.getMaKhachHang().equals(hoaDon.getMaKhachHang()))) {
+            throw new SQLException("Customer ID does not exist!");
+        }
+        if (!nhanVienList.stream().anyMatch(nv -> nv.getMaNhanVien().equals(hoaDon.getMaNhanVien()))) {
+            throw new SQLException("Employee ID does not exist!");
+        }
+        if (hoaDon.getMaKhuyenMai() != null && !((List<Phong>) hoaDon.getMaKhuyenMai()).isEmpty() &&
+                !khuyenMaiList.stream().anyMatch(km -> km.getMaChuongTrinhKhuyenMai().equals(hoaDon.getMaKhuyenMai()))) {
+            throw new SQLException("Promotion ID does not exist!");
+        }
+        HoaDon existingHoaDon = hoaDonList.stream()
+                .filter(hd -> hd.getMaHoaDon().equals(hoaDon.getMaHoaDon()))
+                .findFirst().orElseThrow(() -> new SQLException("Invoice does not exist in the list!"));
+        hoaDonDao.suaHoaDon(hoaDon);
+        int index = hoaDonList.indexOf(existingHoaDon);
+        if (index >= 0) {
+            hoaDonList.set(index, hoaDon);
+        }
+        KhachHang kh = khachHangList.stream()
+                .filter(k -> k.getMaKhachHang().equals(hoaDon.getMaKhachHang()))
+                .findFirst().orElse(null);
+        if (kh != null) {
+            kh.getHoaDonList().remove(existingHoaDon);
+            kh.addHoaDon(hoaDon, hoaDonList);
+        }
+        NhanVien nv = nhanVienList.stream()
+                .filter(n -> n.getMaNhanVien().equals(hoaDon.getMaNhanVien()))
+                .findFirst().orElse(null);
+        if (nv != null) {
+            nv.getHoaDonList().remove(existingHoaDon);
+            nv.addHoaDon(hoaDon, hoaDonList);
+        }
+        notifyListeners(hoaDonListChangeListeners);
+        System.out.println("Updated invoice: " + hoaDon.getMaHoaDon() + ", Total amount: " + hoaDon.getTongTien());
     }
 
     public void addKhachHang(KhachHang khachHang) throws SQLException {
         if (khachHang == null || khachHangList.stream().anyMatch(kh -> kh.getMaKhachHang().equals(khachHang.getMaKhachHang()))) {
-            throw new IllegalArgumentException("Khách hàng không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid customer or customer already exists!");
         }
         khachHangDao.themKhachHang(khachHang);
         khachHangList.add(khachHang);
@@ -333,7 +352,7 @@ public class DataManager {
 
     public void addDichVu(DichVu dichVu) throws SQLException {
         if (dichVu == null || dichVuList.stream().anyMatch(dv -> dv.getMaDichVu().equals(dichVu.getMaDichVu()))) {
-            throw new IllegalArgumentException("Dịch vụ không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid service or service already exists!");
         }
         dichVuDao.themDichVu(dichVu);
         dichVuList.add(dichVu);
@@ -341,7 +360,7 @@ public class DataManager {
 
     public void addKhuyenMai(KhuyenMai khuyenMai) throws SQLException {
         if (khuyenMai == null || khuyenMaiList.stream().anyMatch(km -> km.getMaChuongTrinhKhuyenMai().equals(khuyenMai.getMaChuongTrinhKhuyenMai()))) {
-            throw new IllegalArgumentException("Khuyến mãi không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid promotion or promotion already exists!");
         }
         khuyenMaiDao.themKhuyenMai(khuyenMai);
         khuyenMaiList.add(khuyenMai);
@@ -349,7 +368,7 @@ public class DataManager {
 
     public void addNhanVien(NhanVien nhanVien) throws SQLException {
         if (nhanVien == null || nhanVienList.stream().anyMatch(nv -> nv.getMaNhanVien().equals(nhanVien.getMaNhanVien()))) {
-            throw new IllegalArgumentException("Nhân viên không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid employee or employee already exists!");
         }
         nhanVienDao.themNhanVien(nhanVien);
         nhanVienList.add(nhanVien);
@@ -357,44 +376,39 @@ public class DataManager {
 
     public void addPhieuDatPhong(PhieuDatPhong phieu) throws SQLException {
         if (phieu == null || phieuDatPhongList.stream().anyMatch(p -> p.getMaDatPhong().equals(phieu.getMaDatPhong()))) {
-            throw new IllegalArgumentException("Phiếu đặt phòng không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid booking ticket or booking ticket already exists!");
         }
         if (!khachHangList.stream().anyMatch(kh -> kh.getMaKhachHang().equals(phieu.getMaKhachHang()))) {
-            throw new SQLException("Mã khách hàng không tồn tại!");
+            throw new SQLException("Customer ID does not exist!");
         }
         if (phieu.getMaHoaDon() != null && !phieu.getMaHoaDon().isEmpty() &&
-            !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
-            throw new SQLException("Mã hóa đơn không tồn tại!");
+                !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
+            throw new SQLException("Invoice ID does not exist!");
         }
         phieuDatPhongDao.themPhieuDatPhong(phieu);
         phieuDatPhongList.add(phieu);
     }
+
     public void addChitietPhieuDatPhong(ChitietPhieuDatPhong chitiet) throws SQLException {
         if (chitiet == null) {
-            throw new IllegalArgumentException("Chi tiết phiếu đặt phòng không hợp lệ!");
+            throw new IllegalArgumentException("Invalid booking ticket detail!");
         }
         if (!phieuDatPhongList.stream().anyMatch(p -> p.getMaDatPhong().equals(chitiet.getMaDatPhong()))) {
-            throw new SQLException("Mã phiếu đặt phòng không tồn tại!");
+            throw new SQLException("Booking ticket ID does not exist!");
         }
         if (!phongList.stream().anyMatch(p -> p.getMaPhong().equals(chitiet.getMaPhong()))) {
-            throw new SQLException("Mã phòng không tồn tại!");
+            throw new SQLException("Room ID does not exist!");
         }
-
         if (!chitiet.getMaPhong().matches("P\\d{3}")) {
-            throw new IllegalArgumentException("Mã phòng không đúng định dạng (Pxxx): " + chitiet.getMaPhong());
+            throw new IllegalArgumentException("Room ID format is invalid (Pxxx): " + chitiet.getMaPhong());
         }
-
-        System.out.println("addChitietPhieuDatPhong - MaDatPhong: " + chitiet.getMaDatPhong() + ", MaPhong: " + chitiet.getMaPhong());
-
-        // Kiểm tra xem bản ghi với cặp (maDatPhong, maPhong) đã tồn tại trong cơ sở dữ liệu chưa
+        System.out.println("addChitietPhieuDatPhong - BookingTicketID: " + chitiet.getMaDatPhong() + ", RoomID: " + chitiet.getMaPhong());
         List<ChitietPhieuDatPhong> existingRecords = chitietPhieuDatPhongDao.timKiemChitietPhieuDatPhong(chitiet.getMaDatPhong());
         ChitietPhieuDatPhong existingChitiet = existingRecords.stream()
                 .filter(ct -> ct.getMaPhong().equals(chitiet.getMaPhong()))
                 .findFirst()
                 .orElse(null);
-
         if (existingChitiet != null) {
-            // Nếu bản ghi đã tồn tại, cập nhật bản ghi hiện có thay vì chèn mới
             existingChitiet.setMoTa(chitiet.getMoTa());
             existingChitiet.setTrangThai(chitiet.getTrangThai());
             existingChitiet.setTienPhong(chitiet.getTienPhong());
@@ -403,57 +417,50 @@ public class DataManager {
             existingChitiet.setSoLuong(chitiet.getSoLuong());
             existingChitiet.setDaThanhToan(chitiet.isDaThanhToan());
             chitietPhieuDatPhongDao.suaChitietPhieuDatPhong(existingChitiet);
-
-            // Cập nhật danh sách trong bộ nhớ
             int index = chitietPhieuDatPhongList.indexOf(existingChitiet);
             if (index >= 0) {
                 chitietPhieuDatPhongList.set(index, existingChitiet);
             } else {
                 chitietPhieuDatPhongList.add(existingChitiet);
             }
-            System.out.println("Đã cập nhật ChitietPhieuDatPhong hiện có: " + chitiet.getMaDatPhong() + ", " + chitiet.getMaPhong());
+            System.out.println("Updated existing ChitietPhieuDatPhong: " + chitiet.getMaDatPhong() + ", " + chitiet.getMaPhong());
         } else {
-            // Nếu không có bản ghi, chèn mới
             chitietPhieuDatPhongDao.themChitietPhieuDatPhong(chitiet);
             chitietPhieuDatPhongList.add(chitiet);
-            System.out.println("Đã chèn mới ChitietPhieuDatPhong: " + chitiet.getMaDatPhong() + ", " + chitiet.getMaPhong());
+            System.out.println("Inserted new ChitietPhieuDatPhong: " + chitiet.getMaDatPhong() + ", " + chitiet.getMaPhong());
         }
-
-        // Gắn vào phiếu đặt phòng tương ứng
         phieuDatPhongList.stream()
                 .filter(p -> p.getMaDatPhong().equals(chitiet.getMaDatPhong()))
                 .findFirst()
                 .ifPresent(p -> p.addChitietPhieuDatPhong(chitiet));
-
-        // Thông báo thay đổi
         notifyListeners(chitietPhieuDatPhongListChangeListeners);
     }
 
     public void addChitietHoaDon(ChitietHoaDon chitiet) throws SQLException {
         if (chitiet == null) {
-            throw new IllegalArgumentException("Chi tiết hóa đơn không hợp lệ!");
+            throw new IllegalArgumentException("Invalid invoice detail!");
         }
         if (!hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(chitiet.getMaHoaDon()))) {
-            throw new SQLException("Mã hóa đơn không tồn tại!");
+            throw new SQLException("Invoice ID does not exist!");
         }
         if (chitiet.getMaPhong() != null && !phongList.stream().anyMatch(p -> p.getMaPhong().equals(chitiet.getMaPhong()))) {
-            throw new SQLException("Mã phòng không tồn tại!");
+            throw new SQLException("Room ID does not exist!");
         }
         chitietHoaDonDao.themChitietHoaDon(chitiet);
         chitietHoaDonList.add(chitiet);
         hoaDonList.stream()
-            .filter(hd -> hd.getMaHoaDon().equals(chitiet.getMaHoaDon()))
-            .findFirst()
-            .ifPresent(hd -> hd.addChitietHoaDon(chitiet));
+                .filter(hd -> hd.getMaHoaDon().equals(chitiet.getMaHoaDon()))
+                .findFirst()
+                .ifPresent(hd -> hd.addChitietHoaDon(chitiet));
     }
 
     public void addPhieuDichVu(PhieuDichVu phieu) throws SQLException {
         if (phieu == null || phieuDichVuList.stream().anyMatch(p -> p.getMaPhieuDichVu().equals(phieu.getMaPhieuDichVu()))) {
-            throw new IllegalArgumentException("Phiếu dịch vụ không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid service ticket or service ticket already exists!");
         }
         if (phieu.getMaHoaDon() != null && !phieu.getMaHoaDon().isEmpty() &&
-            !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
-            throw new SQLException("Mã hóa đơn không tồn tại!");
+                !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
+            throw new SQLException("Invoice ID does not exist!");
         }
         phieuDichVuDao.themPhieuDichVu(phieu);
         phieuDichVuList.add(phieu);
@@ -462,13 +469,13 @@ public class DataManager {
     public void addChitietPhieuDichVu(ChitietPhieuDichVu chitiet) throws SQLException {
         if (chitiet == null || chitietPhieuDichVuList.stream()
                 .anyMatch(ct -> ct.getMaPhieuDichVu().equals(chitiet.getMaPhieuDichVu()) && ct.getMaDichVu().equals(chitiet.getMaDichVu()))) {
-            throw new IllegalArgumentException("Chi tiết phiếu dịch vụ không hợp lệ hoặc đã tồn tại!");
+            throw new IllegalArgumentException("Invalid service ticket detail or detail already exists!");
         }
         if (!phieuDichVuList.stream().anyMatch(p -> p.getMaPhieuDichVu().equals(chitiet.getMaPhieuDichVu()))) {
-            throw new SQLException("Mã phiếu dịch vụ không tồn tại!");
+            throw new SQLException("Service ticket ID does not exist!");
         }
         if (!dichVuList.stream().anyMatch(dv -> dv.getMaDichVu().equals(chitiet.getMaDichVu()))) {
-            throw new SQLException("Mã dịch vụ không tồn tại!");
+            throw new SQLException("Service ID does not exist!");
         }
         chitietPhieuDichVuDao.themChitietPhieuDichVu(chitiet);
         chitietPhieuDichVuList.add(chitiet);
@@ -478,7 +485,6 @@ public class DataManager {
                 .ifPresent(p -> p.addChitietPhieuDichVu(chitiet));
     }
 
-  
     public void refreshChitietPhieuDatPhongList() {
         try {
             chitietPhieuDatPhongList.clear();
@@ -492,83 +498,65 @@ public class DataManager {
                 }
             }
             notifyListeners(chitietPhieuDatPhongListChangeListeners);
-            System.out.println("Đã làm mới chitietPhieuDatPhongList: " + chitietPhieuDatPhongList.size() + " bản ghi.");
+            System.out.println("Refreshed chitietPhieuDatPhongList: " + chitietPhieuDatPhongList.size() + " records.");
         } catch (SQLException e) {
-            System.err.println("Lỗi khi làm mới chitietPhieuDatPhongList: " + e.getMessage());
+            System.err.println("Error refreshing chitietPhieuDatPhongList: " + e.getMessage());
         }
     }
-    // Cập nhật dữ liệu
+
     public void updatePhong(Phong phong) throws SQLException {
-        if (phong == null) {
-            throw new IllegalArgumentException("Phòng không hợp lệ!");
-        }
-
-        // Kiểm tra xem phòng có đặt phòng hay không vào ngày hiện tại
-        LocalDate currentDate = LocalDate.now();
-        boolean isBooked = chitietPhieuDatPhongList.stream()
-                .filter(ct -> ct.getMaPhong().equals(phong.getMaPhong()))
-                .anyMatch(booking -> {
-                    PhieuDatPhong phieu = phieuDatPhongList.stream()
-                            .filter(p -> p.getMaDatPhong().equals(booking.getMaDatPhong()))
-                            .findFirst()
-                            .orElse(null);
-                    if (phieu != null && !"Đã hủy".equalsIgnoreCase(phieu.getTrangThai())) {
-                        LocalDate phieuNgayDen = phieu.getNgayDen();
-                        LocalDate phieuNgayDi = phieu.getNgayDi();
-                        return phieuNgayDen != null && phieuNgayDi != null &&
-                                (currentDate.isEqual(phieuNgayDen) || currentDate.isEqual(phieuNgayDi) ||
-                                 (currentDate.isAfter(phieuNgayDen) && currentDate.isBefore(phieuNgayDi)));
-                    }
-                    return false;
-                });
-
-        // Nếu phòng có đặt phòng, trạng thái phải là "Đã đặt" hoặc "Bảo Trì"
-        if (isBooked && !phong.getTrangThai().equals("Đã đặt") && !phong.getTrangThai().equals("Bảo Trì")) {
-            throw new SQLException("Phòng đang có đặt phòng vào ngày " + currentDate + ", trạng thái chỉ có thể là 'Đã đặt' hoặc 'Bảo Trì'!");
-        }
-
-        // Nếu không có đặt phòng, không cho phép trạng thái "Đã đặt"
-        if (!isBooked && phong.getTrangThai().equals("Đã đặt")) {
-            throw new SQLException("Phòng không có đặt phòng vào ngày " + currentDate + ", không thể đặt trạng thái 'Đã đặt'!");
-        }
-
-        // Cho phép trạng thái "Bảo Trì" nếu không có đặt phòng
-        if (phong.getTrangThai().equals("Bảo Trì") && isBooked) {
-            throw new SQLException("Phòng đang có đặt phòng vào ngày " + currentDate + ", không thể chuyển sang 'Bảo Trì'!");
-        }
-
-        // Cập nhật vào cơ sở dữ liệu
-        System.out.println("Cập nhật phòng vào cơ sở dữ liệu: " + phong.getMaPhong() + ", trạng thái: " + phong.getTrangThai());
-        phongDao.updatePhong(phong);
-        System.out.println("Đã gọi phongDao.updatePhong cho phòng: " + phong.getMaPhong() + ", trạng thái: " + phong.getTrangThai());
-
-        // Đồng bộ hóa phongList
-        Phong existingPhong = phongList.stream()
-                .filter(p -> p.getMaPhong().equals(phong.getMaPhong()))
-                .findFirst()
-                .orElse(null);
-        if (existingPhong != null) {
-            int index = phongList.indexOf(existingPhong);
-            phongList.set(index, phong);
-        } else {
-            phongList.add(phong);
-        }
-        notifyListeners(phongListChangeListeners);
-        System.out.println("Đã cập nhật phòng trong danh sách: " + phong.getMaPhong() + ", trạng thái: " + phong.getTrangThai());
+    if (phong == null) {
+        throw new IllegalArgumentException("Phòng không hợp lệ!");
     }
-
-
-	private List<Phong> extracted(HoaDon hoaDon) {
-		return (List<Phong>) hoaDon.getMaKhuyenMai();
-	}
+    LocalDate currentDate = LocalDate.now();
+    boolean isBooked = chitietPhieuDatPhongList.stream()
+            .filter(ct -> ct.getMaPhong().equals(phong.getMaPhong()))
+            .anyMatch(booking -> {
+                PhieuDatPhong phieu = phieuDatPhongList.stream()
+                        .filter(p -> p.getMaDatPhong().equals(booking.getMaDatPhong()))
+                        .findFirst()
+                        .orElse(null);
+                if (phieu != null && !"Đã hủy".equalsIgnoreCase(phieu.getTrangThai())) {
+                    LocalDate phieuNgayDen = phieu.getNgayDen();
+                    LocalDate phieuNgayDi = phieu.getNgayDi();
+                    return phieuNgayDen != null && phieuNgayDi != null &&
+                            (currentDate.isEqual(phieuNgayDen) || currentDate.isEqual(phieuNgayDi) ||
+                                    (currentDate.isAfter(phieuNgayDen) && currentDate.isBefore(phieuNgayDi)));
+                }
+                return false;
+            });
+    if (isBooked && !phong.getTrangThai().equals("Đã đặt") && !phong.getTrangThai().equals("Bảo trì")) {
+        throw new SQLException("Phòng đang được đặt vào ngày " + currentDate + ", trạng thái chỉ có thể là 'Đã đặt' hoặc 'Bảo trì'!");
+    }
+    if (!isBooked && phong.getTrangThai().equals("Đã đặt")) {
+        throw new SQLException("Phòng không có đặt phòng vào ngày " + currentDate + ", không thể đặt trạng thái thành 'Đã đặt'!");
+    }
+    if (phong.getTrangThai().equals("Bảo trì") && isBooked) {
+        throw new SQLException("Phòng đang được đặt vào ngày " + currentDate + ", không thể đặt thành 'Bảo trì'!");
+    }
+    System.out.println("Cập nhật phòng trong cơ sở dữ liệu: " + phong.getMaPhong() + ", trạng thái: " + phong.getTrangThai());
+    phongDao.updatePhong(phong);
+    Phong existingPhong = phongList.stream()
+            .filter(p -> p.getMaPhong().equals(phong.getMaPhong()))
+            .findFirst()
+            .orElse(null);
+    if (existingPhong != null) {
+        int index = phongList.indexOf(existingPhong);
+        phongList.set(index, phong);
+    } else {
+        phongList.add(phong);
+    }
+    notifyListeners(phongListChangeListeners);
+    System.out.println("Đã cập nhật phòng trong danh sách: " + phong.getMaPhong() + ", trạng thái: " + phong.getTrangThai());
+}
 
     public void updateKhachHang(KhachHang khachHang) throws SQLException {
         if (khachHang == null) {
-            throw new IllegalArgumentException("Khách hàng không hợp lệ!");
+            throw new IllegalArgumentException("Invalid customer!");
         }
         KhachHang existingKhachHang = khachHangList.stream()
                 .filter(kh -> kh.getMaKhachHang().equals(khachHang.getMaKhachHang()))
-                .findFirst().orElseThrow(() -> new SQLException("Khách hàng không tồn tại trong danh sách!"));
+                .findFirst().orElseThrow(() -> new SQLException("Customer does not exist in the list!"));
         khachHangDao.suaKhachHang(khachHang);
         int index = khachHangList.indexOf(existingKhachHang);
         if (index >= 0) {
@@ -578,11 +566,11 @@ public class DataManager {
 
     public void updateDichVu(DichVu dichVu) throws SQLException {
         if (dichVu == null) {
-            throw new IllegalArgumentException("Dịch vụ không hợp lệ!");
+            throw new IllegalArgumentException("Invalid service!");
         }
         DichVu existingDichVu = dichVuList.stream()
                 .filter(dv -> dv.getMaDichVu().equals(dichVu.getMaDichVu()))
-                .findFirst().orElseThrow(() -> new SQLException("Dịch vụ không tồn tại trong danh sách!"));
+                .findFirst().orElseThrow(() -> new SQLException("Service does not exist in the list!"));
         dichVuDao.suaDichVu(dichVu);
         int index = dichVuList.indexOf(existingDichVu);
         if (index >= 0) {
@@ -592,11 +580,12 @@ public class DataManager {
 
     public void updateKhuyenMai(KhuyenMai khuyenMai) throws SQLException {
         if (khuyenMai == null) {
-            throw new IllegalArgumentException("Khuyến mãi không hợp lệ!");
+            throw new IllegalArgumentException("Invalid promotion!");
         }
         KhuyenMai existingKhuyenMai = khuyenMaiList.stream()
                 .filter(km -> km.getMaChuongTrinhKhuyenMai().equals(khuyenMai.getMaChuongTrinhKhuyenMai()))
-                .findFirst().orElseThrow(() -> new SQLException("Khuyến mãi không tồn tại trong danh sách!"));
+                .findFirst()
+                .orElseThrow(() -> new SQLException("Promotion does not exist in the list!"));
         khuyenMaiDao.suaKhuyenMai(khuyenMai);
         int index = khuyenMaiList.indexOf(existingKhuyenMai);
         if (index >= 0) {
@@ -606,11 +595,11 @@ public class DataManager {
 
     public void updateNhanVien(NhanVien nhanVien) throws SQLException {
         if (nhanVien == null) {
-            throw new IllegalArgumentException("Nhân viên không hợp lệ!");
+            throw new IllegalArgumentException("Invalid employee!");
         }
         NhanVien existingNhanVien = nhanVienList.stream()
                 .filter(nv -> nv.getMaNhanVien().equals(nhanVien.getMaNhanVien()))
-                .findFirst().orElseThrow(() -> new SQLException("Nhân viên không tồn tại trong danh sách!"));
+                .findFirst().orElseThrow(() -> new SQLException("Employee does not exist in the list!"));
         nhanVienDao.suaNhanVien(nhanVien);
         int index = nhanVienList.indexOf(existingNhanVien);
         if (index >= 0) {
@@ -620,18 +609,18 @@ public class DataManager {
 
     public void updatePhieuDatPhong(PhieuDatPhong phieu) throws SQLException {
         if (phieu == null) {
-            throw new IllegalArgumentException("Phiếu đặt phòng không hợp lệ!");
+            throw new IllegalArgumentException("Invalid booking ticket!");
         }
         if (!khachHangList.stream().anyMatch(kh -> kh.getMaKhachHang().equals(phieu.getMaKhachHang()))) {
-            throw new SQLException("Mã khách hàng không tồn tại!");
+            throw new SQLException("Customer ID does not exist!");
         }
         if (phieu.getMaHoaDon() != null && !phieu.getMaHoaDon().isEmpty() &&
-            !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
-            throw new SQLException("Mã hóa đơn không tồn tại!");
+                !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
+            throw new SQLException("Invoice ID does not exist!");
         }
         PhieuDatPhong existingPhieu = phieuDatPhongList.stream()
                 .filter(p -> p.getMaDatPhong().equals(phieu.getMaDatPhong()))
-                .findFirst().orElseThrow(() -> new SQLException("Phiếu đặt phòng không tồn tại trong danh sách!"));
+                .findFirst().orElseThrow(() -> new SQLException("Booking ticket does not exist in the list!"));
         phieuDatPhongDao.suaPhieuDatPhong(phieu);
         int index = phieuDatPhongList.indexOf(existingPhieu);
         if (index >= 0) {
@@ -641,17 +630,17 @@ public class DataManager {
 
     public void updateChitietPhieuDatPhong(ChitietPhieuDatPhong chitiet) throws SQLException {
         if (chitiet == null) {
-            throw new IllegalArgumentException("Chi tiết phiếu đặt phòng không hợp lệ!");
+            throw new IllegalArgumentException("Invalid booking ticket detail!");
         }
         if (!phieuDatPhongList.stream().anyMatch(p -> p.getMaDatPhong().equals(chitiet.getMaDatPhong()))) {
-            throw new SQLException("Mã phiếu đặt phòng không tồn tại!");
+            throw new SQLException("Booking ticket ID does not exist!");
         }
         if (!phongList.stream().anyMatch(p -> p.getMaPhong().equals(chitiet.getMaPhong()))) {
-            throw new SQLException("Mã phòng không tồn tại!");
+            throw new SQLException("Room ID does not exist!");
         }
         ChitietPhieuDatPhong existingChitiet = chitietPhieuDatPhongList.stream()
                 .filter(ct -> ct.getMaDatPhong().equals(chitiet.getMaDatPhong()) && ct.getMaPhong().equals(chitiet.getMaPhong()))
-                .findFirst().orElseThrow(() -> new SQLException("Chi tiết phiếu đặt phòng không tồn tại trong danh sách!"));
+                .findFirst().orElseThrow(() -> new SQLException("Booking ticket detail does not exist in the list!"));
         chitietPhieuDatPhongDao.suaChitietPhieuDatPhong(chitiet);
         int index = chitietPhieuDatPhongList.indexOf(existingChitiet);
         if (index >= 0) {
@@ -661,17 +650,19 @@ public class DataManager {
 
     public void updateChitietHoaDon(ChitietHoaDon chitiet) throws SQLException {
         if (chitiet == null) {
-            throw new IllegalArgumentException("Chi tiết hóa đơn không hợp lệ!");
+            throw new IllegalArgumentException("Invalid invoice detail!");
         }
         if (!hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(chitiet.getMaHoaDon()))) {
-            throw new SQLException("Mã hóa đơn không tồn tại!");
+            throw new SQLException("Invoice ID does not exist!");
         }
-        if (!phongList.stream().anyMatch(p -> p.getMaPhong().equals(chitiet.getMaPhong()))) {
-            throw new SQLException("Mã phòng không tồn tại!");
+        if (chitiet.getMaPhong() != null && !phongList.stream().anyMatch(p -> p.getMaPhong().equals(chitiet.getMaPhong()))) {
+            throw new SQLException("Room ID does not exist!");
         }
         ChitietHoaDon existingChitiet = chitietHoaDonList.stream()
-                .filter(ct -> ct.getMaHoaDon().equals(chitiet.getMaHoaDon()) && ct.getMaPhong().equals(chitiet.getMaPhong()))
-                .findFirst().orElseThrow(() -> new SQLException("Chi tiết hóa đơn không tồn tại trong danh sách!"));
+                .filter(ct -> ct.getMaHoaDon().equals(chitiet.getMaHoaDon()) &&
+                        (chitiet.getMaPhong() == null ? ct.getMaPhong() == null : chitiet.getMaPhong().equals(ct.getMaPhong())) &&
+                        (chitiet.getMaPhieuDichVu() == null ? ct.getMaPhieuDichVu() == null : chitiet.getMaPhieuDichVu().equals(ct.getMaPhieuDichVu())))
+                .findFirst().orElseThrow(() -> new SQLException("Invoice detail does not exist in the list!"));
         chitietHoaDonDao.suaChitietHoaDon(chitiet);
         int index = chitietHoaDonList.indexOf(existingChitiet);
         if (index >= 0) {
@@ -681,15 +672,15 @@ public class DataManager {
 
     public void updatePhieuDichVu(PhieuDichVu phieu) throws SQLException {
         if (phieu == null) {
-            throw new IllegalArgumentException("Phiếu dịch vụ không hợp lệ!");
+            throw new IllegalArgumentException("Invalid service ticket!");
         }
         if (phieu.getMaHoaDon() != null && !phieu.getMaHoaDon().isEmpty() &&
-            !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
-            throw new SQLException("Mã hóa đơn không tồn tại!");
+                !hoaDonList.stream().anyMatch(hd -> hd.getMaHoaDon().equals(phieu.getMaHoaDon()))) {
+            throw new SQLException("Invoice ID does not exist!");
         }
         PhieuDichVu existingPhieu = phieuDichVuList.stream()
                 .filter(p -> p.getMaPhieuDichVu().equals(phieu.getMaPhieuDichVu()))
-                .findFirst().orElseThrow(() -> new SQLException("Phiếu dịch vụ không tồn tại trong danh sách!"));
+                .findFirst().orElseThrow(() -> new SQLException("Service ticket does not exist in the list!"));
         phieuDichVuDao.suaPhieuDichVu(phieu);
         int index = phieuDichVuList.indexOf(existingPhieu);
         if (index >= 0) {
@@ -699,17 +690,17 @@ public class DataManager {
 
     public void updateChitietPhieuDichVu(ChitietPhieuDichVu chitiet) throws SQLException {
         if (chitiet == null) {
-            throw new IllegalArgumentException("Chi tiết phiếu dịch vụ không hợp lệ!");
+            throw new IllegalArgumentException("Invalid service ticket detail!");
         }
         if (!phieuDichVuList.stream().anyMatch(p -> p.getMaPhieuDichVu().equals(chitiet.getMaPhieuDichVu()))) {
-            throw new SQLException("Mã phiếu dịch vụ không tồn tại!");
+            throw new SQLException("Service ticket ID does not exist!");
         }
         if (!dichVuList.stream().anyMatch(dv -> dv.getMaDichVu().equals(chitiet.getMaDichVu()))) {
-            throw new SQLException("Mã dịch vụ không tồn tại!");
+            throw new SQLException("Service ID does not exist!");
         }
         ChitietPhieuDichVu existingChitiet = chitietPhieuDichVuList.stream()
                 .filter(ct -> ct.getMaPhieuDichVu().equals(chitiet.getMaPhieuDichVu()) && ct.getMaDichVu().equals(chitiet.getMaDichVu()))
-                .findFirst().orElseThrow(() -> new SQLException("Chi tiết phiếu dịch vụ không tồn tại trong danh sách!"));
+                .findFirst().orElseThrow(() -> new SQLException("Service ticket detail does not exist in the list!"));
         chitietPhieuDichVuDao.suaChitietPhieuDichVu(chitiet);
         int index = chitietPhieuDichVuList.indexOf(existingChitiet);
         if (index >= 0) {
@@ -717,13 +708,10 @@ public class DataManager {
         }
     }
 
-   
-
-    // Xóa dữ liệu
     public void deletePhong(String maPhong) throws SQLException {
         Phong phong = phongList.stream()
                 .filter(p -> p.getMaPhong().equals(maPhong))
-                .findFirst().orElseThrow(() -> new SQLException("Phòng không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Room does not exist!"));
         phongDao.xoaPhong(maPhong);
         phongList.remove(phong);
     }
@@ -731,11 +719,11 @@ public class DataManager {
     public void deleteHoaDon(String maHoaDon) throws SQLException {
         HoaDon hoaDon = hoaDonList.stream()
                 .filter(hd -> hd.getMaHoaDon().equals(maHoaDon))
-                .findFirst().orElseThrow(() -> new SQLException("Hóa đơn không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Invoice does not exist!"));
         if (chitietHoaDonList.stream().anyMatch(ct -> ct.getMaHoaDon().equals(maHoaDon)) ||
-            phieuDatPhongList.stream().anyMatch(p -> maHoaDon.equals(p.getMaHoaDon())) ||
-            phieuDichVuList.stream().anyMatch(p -> maHoaDon.equals(p.getMaHoaDon()))) {
-            throw new SQLException("Không thể xóa hóa đơn vì đã được sử dụng trong chi tiết hóa đơn, phiếu đặt phòng hoặc phiếu dịch vụ!");
+                phieuDatPhongList.stream().anyMatch(p -> maHoaDon.equals(p.getMaHoaDon())) ||
+                phieuDichVuList.stream().anyMatch(p -> maHoaDon.equals(p.getMaHoaDon()))) {
+            throw new SQLException("Cannot delete invoice because it is used in invoice details, booking tickets, or service tickets!");
         }
         hoaDonDao.xoaHoaDon(maHoaDon);
         hoaDonList.remove(hoaDon);
@@ -756,10 +744,10 @@ public class DataManager {
     public void deleteKhachHang(String maKhachHang) throws SQLException {
         KhachHang khachHang = khachHangList.stream()
                 .filter(kh -> kh.getMaKhachHang().equals(maKhachHang))
-                .findFirst().orElseThrow(() -> new SQLException("Khách hàng không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Customer does not exist!"));
         if (hoaDonList.stream().anyMatch(hd -> hd.getMaKhachHang().equals(maKhachHang)) ||
-            phieuDatPhongList.stream().anyMatch(p -> p.getMaKhachHang().equals(maKhachHang))) {
-            throw new SQLException("Không thể xóa khách hàng vì đã có hóa đơn hoặc phiếu đặt phòng liên quan!");
+                phieuDatPhongList.stream().anyMatch(p -> p.getMaKhachHang().equals(maKhachHang))) {
+            throw new SQLException("Cannot delete customer because they have related invoices or booking tickets!");
         }
         khachHangDao.xoaKhachHang(maKhachHang);
         khachHangList.remove(khachHang);
@@ -768,9 +756,9 @@ public class DataManager {
     public void deleteDichVu(String maDichVu) throws SQLException {
         DichVu dichVu = dichVuList.stream()
                 .filter(dv -> dv.getMaDichVu().equals(maDichVu))
-                .findFirst().orElseThrow(() -> new SQLException("Dịch vụ không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Service does not exist!"));
         if (chitietPhieuDichVuList.stream().anyMatch(ct -> ct.getMaDichVu().equals(maDichVu))) {
-            throw new SQLException("Không thể xóa dịch vụ vì đã được sử dụng trong chi tiết phiếu dịch vụ!");
+            throw new SQLException("Cannot delete service because it is used in service ticket details!");
         }
         dichVuDao.xoaDichVu(maDichVu);
         dichVuList.remove(dichVu);
@@ -779,9 +767,9 @@ public class DataManager {
     public void deleteKhuyenMai(String maKhuyenMai) throws SQLException {
         KhuyenMai khuyenMai = khuyenMaiList.stream()
                 .filter(km -> km.getMaChuongTrinhKhuyenMai().equals(maKhuyenMai))
-                .findFirst().orElseThrow(() -> new SQLException("Khuyến mãi không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Promotion does not exist!"));
         if (hoaDonList.stream().anyMatch(hd -> maKhuyenMai.equals(hd.getMaKhuyenMai()))) {
-            throw new SQLException("Không thể xóa khuyến mãi vì đã được sử dụng trong hóa đơn!");
+            throw new SQLException("Cannot delete promotion because it is used in invoices!");
         }
         khuyenMaiDao.xoaKhuyenMai(maKhuyenMai);
         khuyenMaiList.remove(khuyenMai);
@@ -790,18 +778,15 @@ public class DataManager {
     public void deleteNhanVien(String maNhanVien) throws SQLException {
         NhanVien nhanVien = nhanVienList.stream()
                 .filter(nv -> nv.getMaNhanVien().equals(maNhanVien))
-                .findFirst().orElseThrow(() -> new SQLException("Nhân viên không tồn tại!"));
-       
+                .findFirst().orElseThrow(() -> new SQLException("Employee does not exist!"));
         nhanVienDao.xoaNhanVien(maNhanVien);
         nhanVienList.remove(nhanVien);
     }
 
-    
-
     public void deleteChitietPhieuDatPhong(String maDatPhong, String maPhong) throws SQLException {
         ChitietPhieuDatPhong chitiet = chitietPhieuDatPhongList.stream()
                 .filter(ct -> ct.getMaDatPhong().equals(maDatPhong) && ct.getMaPhong().equals(maPhong))
-                .findFirst().orElseThrow(() -> new SQLException("Chi tiết phiếu đặt phòng không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Booking ticket detail does not exist!"));
         chitietPhieuDatPhongDao.xoaChitietPhieuDatPhong(maDatPhong, maPhong);
         chitietPhieuDatPhongList.remove(chitiet);
         phieuDatPhongList.stream()
@@ -812,8 +797,9 @@ public class DataManager {
 
     public void deleteChitietHoaDon(String maHoaDon, String maPhong) throws SQLException {
         ChitietHoaDon chitiet = chitietHoaDonList.stream()
-                .filter(ct -> ct.getMaHoaDon().equals(maHoaDon) && ct.getMaPhong().equals(maPhong))
-                .findFirst().orElseThrow(() -> new SQLException("Chi tiết hóa đơn không tồn tại!"));
+                .filter(ct -> ct.getMaHoaDon().equals(maHoaDon) && 
+                        (maPhong == null ? ct.getMaPhong() == null : maPhong.equals(ct.getMaPhong())))
+                .findFirst().orElseThrow(() -> new SQLException("Invoice detail does not exist!"));
         chitietHoaDonDao.xoaChitietHoaDon(maHoaDon, maPhong);
         chitietHoaDonList.remove(chitiet);
         hoaDonList.stream()
@@ -825,9 +811,9 @@ public class DataManager {
     public void deletePhieuDichVu(String maPhieuDichVu) throws SQLException {
         PhieuDichVu phieu = phieuDichVuList.stream()
                 .filter(p -> p.getMaPhieuDichVu().equals(maPhieuDichVu))
-                .findFirst().orElseThrow(() -> new SQLException("Phiếu dịch vụ không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Service ticket does not exist!"));
         if (chitietPhieuDichVuList.stream().anyMatch(ct -> ct.getMaPhieuDichVu().equals(maPhieuDichVu))) {
-            throw new SQLException("Không thể xóa phiếu dịch vụ vì đã có chi tiết phiếu dịch vụ liên quan!");
+            throw new SQLException("Cannot delete service ticket because it has related service ticket details!");
         }
         phieuDichVuDao.xoaPhieuDichVu(maPhieuDichVu);
         phieuDichVuList.remove(phieu);
@@ -836,7 +822,7 @@ public class DataManager {
     public void deleteChitietPhieuDichVu(String maPhieuDichVu, String maDichVu) throws SQLException {
         ChitietPhieuDichVu chitiet = chitietPhieuDichVuList.stream()
                 .filter(ct -> ct.getMaPhieuDichVu().equals(maPhieuDichVu) && ct.getMaDichVu().equals(maDichVu))
-                .findFirst().orElseThrow(() -> new SQLException("Chi tiết phiếu dịch vụ không tồn tại!"));
+                .findFirst().orElseThrow(() -> new SQLException("Service ticket detail does not exist!"));
         chitietPhieuDichVuDao.xoaChitietPhieuDichVu(maPhieuDichVu, maDichVu);
         chitietPhieuDichVuList.remove(chitiet);
         phieuDichVuList.stream()
@@ -845,122 +831,124 @@ public class DataManager {
                 .ifPresent(p -> p.getChitietPhieuDichVus().remove(chitiet));
     }
 
-   
+    public void deletePhieuDatPhong(String maDatPhong) throws SQLException {
+        List<ChitietPhieuDatPhong> chitietList = chitietPhieuDatPhongList.stream()
+                .filter(ct -> ct.getMaDatPhong().equals(maDatPhong))
+                .collect(Collectors.toList());
+        for (ChitietPhieuDatPhong ct : chitietList) {
+            chitietPhieuDatPhongDao.xoaChitietPhieuDatPhong(ct.getMaDatPhong(), ct.getMaPhong());
+            chitietPhieuDatPhongList.remove(ct);
+        }
+        PhieuDatPhong phieu = phieuDatPhongList.stream()
+                .filter(p -> p.getMaDatPhong().equals(maDatPhong))
+                .findFirst().orElse(null);
+        if (phieu != null) {
+            phieuDatPhongDao.xoaPhieuDatPhong(maDatPhong);
+            phieuDatPhongList.remove(phieu);
+        }
+        notifyListeners(phieuDatPhongListChangeListeners);
+        notifyListeners(chitietPhieuDatPhongListChangeListeners);
+    }
 
     private void notifyListeners(List<Runnable> listeners) {
         for (Runnable listener : listeners) {
             listener.run();
         }
     }
+
     public void updatePhongStatusByDate(LocalDate date) throws SQLException {
-        for (Phong phong : phongList) {
-            // Lấy trạng thái hiện tại từ cơ sở dữ liệu để đảm bảo tính nhất quán
-            Phong dbPhong = phongDao.getPhongByMa(phong.getMaPhong());
-            if (dbPhong == null) {
-                System.out.println("Không tìm thấy phòng trong cơ sở dữ liệu: " + phong.getMaPhong());
-                continue;
-            }
-
-            // Bỏ qua các phòng đang ở trạng thái "Bảo Trì"
-            if ("Bảo Trì".equalsIgnoreCase(dbPhong.getTrangThai())) {
-                System.out.println("Bỏ qua cập nhật trạng thái cho phòng " + phong.getMaPhong() + " vì đang ở trạng thái Bảo Trì");
-                continue;
-            }
-
-            boolean isBooked = false;
-            List<ChitietPhieuDatPhong> bookings = chitietPhieuDatPhongList.stream()
-                    .filter(ct -> ct.getMaPhong().equals(phong.getMaPhong()))
-                    .collect(Collectors.toList());
-            for (ChitietPhieuDatPhong booking : bookings) {
-                PhieuDatPhong phieu = phieuDatPhongList.stream()
-                        .filter(p -> p.getMaDatPhong().equals(booking.getMaDatPhong()))
-                        .findFirst()
-                        .orElse(null);
-                if (phieu != null && !"Đã hủy".equalsIgnoreCase(phieu.getTrangThai())) {
-                    LocalDate phieuNgayDen = phieu.getNgayDen();
-                    LocalDate phieuNgayDi = phieu.getNgayDi();
-                    if (phieuNgayDen != null && phieuNgayDi != null &&
-                            (date.isEqual(phieuNgayDen) || date.isEqual(phieuNgayDi) ||
-                             (date.isAfter(phieuNgayDen) && date.isBefore(phieuNgayDi)))) {
-                        isBooked = true;
-                        break;
-                    }
+    for (Phong phong : phongList) {
+        Phong dbPhong = phongDao.getPhongByMa(phong.getMaPhong());
+        if (dbPhong == null) {
+            System.out.println("Phòng không tìm thấy trong cơ sở dữ liệu: " + phong.getMaPhong());
+            continue;
+        }
+        if ("Bảo trì".equalsIgnoreCase(dbPhong.getTrangThai())) {
+            System.out.println("Bỏ qua cập nhật trạng thái cho phòng " + phong.getMaPhong() + " vì đang ở trạng thái Bảo trì");
+            continue;
+        }
+        boolean isBooked = false;
+        List<ChitietPhieuDatPhong> bookings = chitietPhieuDatPhongList.stream()
+                .filter(ct -> ct.getMaPhong().equals(phong.getMaPhong()))
+                .collect(Collectors.toList());
+        for (ChitietPhieuDatPhong booking : bookings) {
+            PhieuDatPhong phieu = phieuDatPhongList.stream()
+                    .filter(p -> p.getMaDatPhong().equals(booking.getMaDatPhong()))
+                    .findFirst()
+                    .orElse(null);
+            if (phieu != null && !"Đã hủy".equalsIgnoreCase(phieu.getTrangThai())) { // Bao gồm cả "Xác nhận"
+                LocalDate phieuNgayDen = phieu.getNgayDen();
+                LocalDate phieuNgayDi = phieu.getNgayDi();
+                if (phieuNgayDen != null && phieuNgayDi != null &&
+                        (date.isEqual(phieuNgayDen) || date.isEqual(phieuNgayDi) ||
+                                (date.isAfter(phieuNgayDen) && date.isBefore(phieuNgayDi)))) {
+                    isBooked = true;
+                    break;
                 }
             }
-
-            // Cập nhật trạng thái phòng
-            String newStatus = isBooked ? "Đã đặt" : "Trống";
-            if (!newStatus.equals(dbPhong.getTrangThai())) {
-                phong.setTrangThai(newStatus);
-                System.out.println("Chuẩn bị cập nhật trạng thái phòng: " + phong.getMaPhong() + " thành " + newStatus + " cho ngày " + date);
-                phongDao.updatePhong(phong);
-                System.out.println("Đã cập nhật trạng thái phòng: " + phong.getMaPhong() + " thành " + newStatus + " cho ngày " + date);
-            } else {
-                System.out.println("Không cần cập nhật trạng thái phòng: " + phong.getMaPhong() + ", trạng thái hiện tại: " + dbPhong.getTrangThai());
-            }
         }
-        notifyListeners(phongListChangeListeners);
+        String newStatus = isBooked ? "Đã đặt" : "Trống";
+        if (!newStatus.equals(dbPhong.getTrangThai())) {
+            phong.setTrangThai(newStatus);
+            System.out.println("Chuẩn bị cập nhật trạng thái phòng: " + phong.getMaPhong() + " thành " + newStatus + " cho ngày " + date);
+            phongDao.updatePhong(phong);
+            System.out.println("Đã cập nhật trạng thái phòng: " + phong.getMaPhong() + " thành " + newStatus + " cho ngày " + date);
+        } else {
+            System.out.println("Không cần cập nhật trạng thái phòng: " + phong.getMaPhong() + ", trạng thái hiện tại: " + dbPhong.getTrangThai());
+        }
     }
+    notifyListeners(phongListChangeListeners);
+}
+
     public boolean kiemTraPhongDat(String maPhong, LocalDate ngayDen, LocalDate ngayDi) throws SQLException {
         if (maPhong == null || ngayDen == null || ngayDi == null) {
-            throw new IllegalArgumentException("Thông tin phòng hoặc ngày không hợp lệ!");
+            throw new IllegalArgumentException("Invalid room or date information!");
         }
-
         for (ChitietPhieuDatPhong booking : chitietPhieuDatPhongList) {
             if (booking.getMaPhong().equals(maPhong)) {
                 PhieuDatPhong phieu = phieuDatPhongList.stream()
                         .filter(p -> p.getMaDatPhong().equals(booking.getMaDatPhong()))
                         .findFirst()
                         .orElse(null);
-                if (phieu != null && !"Đã hủy".equalsIgnoreCase(phieu.getTrangThai())) {
+                if (phieu != null && !"Canceled".equalsIgnoreCase(phieu.getTrangThai())) {
                     LocalDate phieuNgayDen = phieu.getNgayDen();
                     LocalDate phieuNgayDi = phieu.getNgayDi();
                     if (phieuNgayDen != null && phieuNgayDi != null) {
-                        // Kiểm tra giao nhau giữa [ngayDen, ngayDi] và [phieuNgayDen, phieuNgayDi]
                         if (!(ngayDi.isBefore(phieuNgayDen) || ngayDen.isAfter(phieuNgayDi))) {
-                            return true; // Có đặt phòng trong khoảng thời gian
+                            return true; // Room is booked during the specified period
                         }
                     }
                 }
             }
         }
-        return false; // Không có đặt phòng
+        return false; // Room is not booked
     }
+
     public void deletePhieuDatPhongFull(String maDatPhong) throws SQLException {
         if (maDatPhong == null) {
-            throw new IllegalArgumentException("Mã đặt phòng không hợp lệ!");
+            throw new IllegalArgumentException("Invalid booking ticket ID!");
         }
-
-        // Tìm phiếu đặt phòng
         PhieuDatPhong phieu = phieuDatPhongList.stream()
                 .filter(p -> p.getMaDatPhong().equals(maDatPhong))
                 .findFirst()
-                .orElseThrow(() -> new SQLException("Phiếu đặt phòng không tồn tại!"));
-
-        // Xóa chi tiết phiếu đặt phòng trước
+                .orElseThrow(() -> new SQLException("Booking ticket does not exist!"));
         List<ChitietPhieuDatPhong> chitietPhieuDatPhongs = chitietPhieuDatPhongList.stream()
                 .filter(ct -> ct.getMaDatPhong().equals(maDatPhong))
                 .collect(Collectors.toList());
         for (ChitietPhieuDatPhong ct : chitietPhieuDatPhongs) {
             chitietPhieuDatPhongDao.xoaChitietPhieuDatPhong(ct.getMaDatPhong(), ct.getMaPhong());
             chitietPhieuDatPhongList.remove(ct);
-            System.out.println("Đã xóa chi tiết phiếu đặt phòng: " + ct.getMaDatPhong() + ", " + ct.getMaPhong());
+            System.out.println("Deleted booking ticket detail: " + ct.getMaDatPhong() + ", " + ct.getMaPhong());
         }
-
-        // Xóa phiếu đặt phòng trước
         String maHoaDon = phieu.getMaHoaDon();
         phieuDatPhongDao.xoaPhieuDatPhong(maDatPhong);
         phieuDatPhongList.remove(phieu);
-        System.out.println("Đã xóa phiếu đặt phòng: " + maDatPhong);
-
-        // Sau đó xóa dữ liệu liên quan đến hóa đơn
+        System.out.println("Deleted booking ticket: " + maDatPhong);
         if (maHoaDon != null && !maHoaDon.isEmpty()) {
-            // Xóa chi tiết hóa đơn
             List<ChitietHoaDon> chitietHoaDons = chitietHoaDonList.stream()
                     .filter(ct -> ct.getMaHoaDon().equals(maHoaDon))
                     .collect(Collectors.toList());
             for (ChitietHoaDon cthd : chitietHoaDons) {
-                // Xóa chi tiết phiếu dịch vụ liên quan (nếu có)
                 if (cthd.getMaPhieuDichVu() != null) {
                     List<ChitietPhieuDichVu> chitietPhieuDichVus = chitietPhieuDichVuList.stream()
                             .filter(ct -> ct.getMaPhieuDichVu().equals(cthd.getMaPhieuDichVu()))
@@ -968,10 +956,8 @@ public class DataManager {
                     for (ChitietPhieuDichVu ctpdv : chitietPhieuDichVus) {
                         chitietPhieuDichVuDao.xoaChitietPhieuDichVu(ctpdv.getMaPhieuDichVu(), ctpdv.getMaDichVu());
                         chitietPhieuDichVuList.remove(ctpdv);
-                        System.out.println("Đã xóa chi tiết phiếu dịch vụ: " + ctpdv.getMaPhieuDichVu() + ", " + ctpdv.getMaDichVu());
+                        System.out.println("Deleted service ticket detail: " + ctpdv.getMaPhieuDichVu() + ", " + ctpdv.getMaDichVu());
                     }
-
-                    // Xóa phiếu dịch vụ
                     PhieuDichVu pdv = phieuDichVuList.stream()
                             .filter(p -> p.getMaPhieuDichVu().equals(cthd.getMaPhieuDichVu()))
                             .findFirst()
@@ -979,17 +965,13 @@ public class DataManager {
                     if (pdv != null) {
                         phieuDichVuDao.xoaPhieuDichVu(pdv.getMaPhieuDichVu());
                         phieuDichVuList.remove(pdv);
-                        System.out.println("Đã xóa phiếu dịch vụ: " + pdv.getMaPhieuDichVu());
+                        System.out.println("Deleted service ticket: " + pdv.getMaPhieuDichVu());
                     }
                 }
-
-                // Xóa chi tiết hóa đơn
                 chitietHoaDonDao.xoaChitietHoaDon(cthd.getMaHoaDon(), cthd.getMaPhong());
                 chitietHoaDonList.remove(cthd);
-                System.out.println("Đã xóa chi tiết hóa đơn: " + cthd.getMaHoaDon() + ", " + cthd.getMaPhong());
+                System.out.println("Deleted invoice detail: " + cthd.getMaHoaDon() + ", " + cthd.getMaPhong());
             }
-
-            // Xóa hóa đơn
             HoaDon hoaDon = hoaDonList.stream()
                     .filter(hd -> hd.getMaHoaDon().equals(maHoaDon))
                     .findFirst()
@@ -997,7 +979,6 @@ public class DataManager {
             if (hoaDon != null) {
                 hoaDonDao.xoaHoaDon(maHoaDon);
                 hoaDonList.remove(hoaDon);
-                // Cập nhật danh sách hóa đơn của khách hàng và nhân viên
                 KhachHang kh = khachHangList.stream()
                         .filter(k -> k.getMaKhachHang().equals(hoaDon.getMaKhachHang()))
                         .findFirst().orElse(null);
@@ -1010,39 +991,26 @@ public class DataManager {
                 if (nv != null) {
                     nv.getHoaDonList().remove(hoaDon);
                 }
-                System.out.println("Đã xóa hóa đơn: " + maHoaDon);
+                System.out.println("Deleted invoice: " + maHoaDon);
             }
         }
-
-        // Thông báo thay đổi
         notifyListeners(phieuDatPhongListChangeListeners);
         notifyListeners(chitietPhieuDatPhongListChangeListeners);
         notifyListeners(hoaDonListChangeListeners);
         notifyListeners(chitietHoaDonListChangeListeners);
         notifyListeners(phieuDichVuListChangeListeners);
         notifyListeners(chitietPhieuDichVuListChangeListeners);
-    }	
-	public void updateHoaDon(HoaDon hoaDon) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	public void deleteChitietPhieuDatPhongByMaDatPhong(String maDatPhong) throws SQLException {
-	    String sql = "DELETE FROM ChitietPhieuDatPhong WHERE maDatPhong = ?";
-	    try (Connection conn = ConnectDB.getConnection();
-	         PreparedStatement stmt = conn.prepareStatement(sql)) {
-	        stmt.setString(1, maDatPhong);
-	        int rowsAffected = stmt.executeUpdate();
-	        System.out.println("Số bản ghi đã xóa: " + rowsAffected + " cho maDatPhong: " + maDatPhong);
-	    }
-	}
-	public void deletePhieuDatPhong(String maDatPhong) {
-        // Xóa chi tiết phiếu đặt phòng
-        chitietPhieuDatPhongList.removeIf(ct -> ct.getMaDatPhong().equals(maDatPhong));
-        // Xóa phiếu đặt phòng
-        phieuDatPhongList.removeIf(p -> p.getMaDatPhong().equals(maDatPhong));
-        notifyListeners(phieuDatPhongListChangeListeners);
-        notifyListeners(chitietPhieuDatPhongListChangeListeners);
     }
-	
+
+    public void deleteChitietPhieuDatPhongByMaDatPhong(String maDatPhong) throws SQLException {
+        String sql = "DELETE FROM ChitietPhieuDatPhong WHERE maDatPhong = ?";
+        try (Connection conn = ConnectDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maDatPhong);
+            int rowsAffected = stmt.executeUpdate();
+            System.out.println("Number of records deleted: " + rowsAffected + " for BookingTicketID: " + maDatPhong);
+            chitietPhieuDatPhongList.removeIf(ct -> ct.getMaDatPhong().equals(maDatPhong));
+            notifyListeners(chitietPhieuDatPhongListChangeListeners);
+        }
+    }
 }

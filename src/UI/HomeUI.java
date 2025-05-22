@@ -143,7 +143,7 @@ public class HomeUI extends Application {
             isQuanLy ? new String[]{"Quản lý khách hàng", "Tìm kiếm khách hàng"} 
                      : new String[]{"Tìm kiếm khách hàng"});
         addExpandableMenu(menuItems, "Phòng", 
-            isQuanLy ? new String[]{"Đặt phòng", "Quản lý phòng", "Quản lý đặt phòng", "Đổi phòng", "Tìm kiếm phòng"} 
+            isQuanLy ? new String[]{"Đặt phòng", "Quản lý phòng", "Quản lý đặt phòng", "Tìm kiếm phòng"} 
                      : new String[]{"Đặt phòng", "Đổi phòng", "Tìm kiếm phòng"});
         addExpandableMenu(menuItems, "Dịch vụ", 
             isQuanLy ? new String[]{"Quản lý dịch vụ", "Tìm kiếm dịch vụ"} 

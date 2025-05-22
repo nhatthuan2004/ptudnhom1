@@ -1,8 +1,11 @@
 package UI;
 
 import dao.ChitietHoaDon_Dao;
+import dao.ChitietPhieuDatPhong_Dao;
+import dao.ChitietPhieuDichVu_Dao;
 import dao.HoaDon_Dao;
 import dao.KhachHang_Dao;
+import dao.PhieuDatPhong_Dao;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -17,13 +20,17 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import model.ChitietHoaDon;
+import model.ChitietPhieuDatPhong;
+import model.ChitietPhieuDichVu;
 import model.HoaDon;
 import model.KhachHang;
+import model.PhieuDatPhong;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class QLDoanhThu {
     private final ObservableList<HoaDon> hoaDonList;
@@ -39,6 +46,9 @@ public class QLDoanhThu {
     private final DataManager dataManager;
     private final HoaDon_Dao hoaDonDao;
     private final ChitietHoaDon_Dao chitietHoaDonDao;
+    private final ChitietPhieuDatPhong_Dao chitietPhieuDatPhongDao;
+    private final ChitietPhieuDichVu_Dao chitietPhieuDichVuDao;
+    private final PhieuDatPhong_Dao phieuDatPhongDao;
 
     public QLDoanhThu() {
         dataManager = DataManager.getInstance();
@@ -46,6 +56,9 @@ public class QLDoanhThu {
         this.chitietHoaDonList = dataManager.getChitietHoaDonList();
         this.hoaDonDao = new HoaDon_Dao();
         this.chitietHoaDonDao = new ChitietHoaDon_Dao();
+        this.chitietPhieuDatPhongDao = new ChitietPhieuDatPhong_Dao();
+        this.chitietPhieuDichVuDao = new ChitietPhieuDichVu_Dao();
+        this.phieuDatPhongDao = new PhieuDatPhong_Dao();
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
         dataManager.addHoaDonListChangeListener(this::updateDataOnChange);
@@ -179,29 +192,65 @@ public class QLDoanhThu {
 
         double doanhThuPhong = 0;
         double doanhThuDichVu = 0;
-        double totalThueVat = 0;
-        double totalChietKhau = 0;
+        double tongDoanhThu = 0;
 
         LocalDateTime start = selectedDate.atStartOfDay();
         LocalDateTime end = selectedDate.atTime(23, 59, 59);
 
+        // Debugging: Check data availability
+        System.out.println("Processing date: " + selectedDate);
+        System.out.println("HoaDonList size: " + hoaDonList.size());
+        System.out.println("ChitietHoaDonList size: " + chitietHoaDonList.size());
+
         for (HoaDon hoaDon : hoaDonList) {
             if (hoaDon.getTrangThai() && !hoaDon.getNgayLap().isBefore(start) && !hoaDon.getNgayLap().isAfter(end)) {
-                for (ChitietHoaDon ct : chitietHoaDonList) {
-                    if (ct.getMaHoaDon().equals(hoaDon.getMaHoaDon())) {
-                        double subTotal = ct.getTienPhong() + ct.getTienDichVu();
-                        double vatAmount = subTotal * (ct.getThueVat() / 100);
-                        double discountAmount = subTotal * (ct.getKhuyenMai() / 100);
-                        doanhThuPhong += ct.getTienPhong();
-                        doanhThuDichVu += ct.getTienDichVu();
-                        totalThueVat += vatAmount;
-                        totalChietKhau += discountAmount;
+                double hoaDonPhong = 0;
+                double hoaDonDichVu = 0;
+                double hoaDonVat = 0;
+                double hoaDonChietKhau = 0;
+
+                try {
+                    List<ChitietHoaDon> cthdList = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(hoaDon.getMaHoaDon());
+                    System.out.println("Invoice " + hoaDon.getMaHoaDon() + " has " + cthdList.size() + " details");
+
+                    for (ChitietHoaDon cthd : cthdList) {
+                        // Calculate room revenue
+                        if (cthd.getMaDatPhong() != null) {
+                            List<ChitietPhieuDatPhong> chiTietList = chitietPhieuDatPhongDao.timKiemChitietPhieuDatPhong(cthd.getMaDatPhong());
+                            for (ChitietPhieuDatPhong ctp : chiTietList) {
+                                PhieuDatPhong phieu = phieuDatPhongDao.getPhieuDatPhongByMa(ctp.getMaDatPhong());
+                                long soNgay = phieu != null && phieu.getNgayDen() != null && phieu.getNgayDi() != null
+                                        ? Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(phieu.getNgayDen(), phieu.getNgayDi()))
+                                        : 1;
+                                hoaDonPhong += ctp.getTienPhong() * soNgay;
+                            }
+                        }
+
+                        // Calculate service revenue
+                        if (cthd.getMaPhieuDichVu() != null) {
+                            List<ChitietPhieuDichVu> chiTietDVList = chitietPhieuDichVuDao.timKiemChitietPhieuDichVu(cthd.getMaPhieuDichVu());
+                            for (ChitietPhieuDichVu ctdv : chiTietDVList) {
+                                hoaDonDichVu += ctdv.getDonGia() * ctdv.getSoLuong();
+                            }
+                        }
+
+                        // Calculate VAT and discount
+                        double subTotal = hoaDonPhong + hoaDonDichVu;
+                        hoaDonVat += subTotal * (cthd.getThueVat() / 100);
+                        hoaDonChietKhau += subTotal * (cthd.getKhuyenMai() / 100);
                     }
+
+                    doanhThuPhong += hoaDonPhong;
+                    doanhThuDichVu += hoaDonDichVu;
+                    tongDoanhThu += (hoaDonPhong + hoaDonDichVu + hoaDonVat - hoaDonChietKhau);
+
+                    // Debugging: Log invoice totals
+                    System.out.println("Invoice " + hoaDon.getMaHoaDon() + ": Room = " + hoaDonPhong + ", Service = " + hoaDonDichVu + ", Total = " + (hoaDonPhong + hoaDonDichVu + hoaDonVat - hoaDonChietKhau));
+                } catch (SQLException e) {
+                    System.err.println("Error processing invoice " + hoaDon.getMaHoaDon() + ": " + e.getMessage());
                 }
             }
         }
-
-        double tongDoanhThu = doanhThuPhong + doanhThuDichVu + totalThueVat - totalChietKhau;
 
         lblRevenueRoom.setText(String.format("%,.0f VNĐ", doanhThuPhong));
         lblDoanhThuDichVu.setText(String.format("%,.0f VNĐ", doanhThuDichVu));
@@ -216,6 +265,9 @@ public class QLDoanhThu {
         if (tongDoanhThu == 0) {
             pieChart.setData(FXCollections.observableArrayList(new PieChart.Data("Không có dữ liệu", 1)));
         }
+
+        // Debugging: Log final totals
+        System.out.println("Final totals: Room = " + doanhThuPhong + ", Service = " + doanhThuDichVu + ", Total = " + tongDoanhThu);
     }
 
     private void updateDataOnChange() {
@@ -235,6 +287,9 @@ public class QLDoanhThu {
 
         TableView<HoaDon> table = new TableView<>();
         table.setPrefHeight(300);
+        table.setSelectionModel(null); // Disable selection
+        table.setMouseTransparent(true); // Disable mouse interaction
+        table.setStyle("-fx-font-size: 12; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-background-color: #f9f9f9;");
 
         TableColumn<HoaDon, String> maHoaDonCol = new TableColumn<>("Mã Hóa Đơn");
         maHoaDonCol.setCellValueFactory(new PropertyValueFactory<>("maHoaDon"));
@@ -256,22 +311,60 @@ public class QLDoanhThu {
         TableColumn<HoaDon, Double> tienPhongCol = new TableColumn<>("Tiền Phòng");
         tienPhongCol.setCellValueFactory(cellData -> {
             String maHoaDon = cellData.getValue().getMaHoaDon();
-            double total = chitietHoaDonList.stream()
-                    .filter(ct -> maHoaDon.equals(ct.getMaHoaDon()))
-                    .mapToDouble(ChitietHoaDon::getTienPhong)
-                    .sum();
-            return new javafx.beans.property.SimpleObjectProperty<>(total);
+            try {
+                List<ChitietHoaDon> cthdList = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(maHoaDon);
+                double totalTienPhong = 0;
+                for (ChitietHoaDon cthd : cthdList) {
+                    if (cthd.getMaDatPhong() != null) {
+                        List<ChitietPhieuDatPhong> chiTietList = chitietPhieuDatPhongDao.timKiemChitietPhieuDatPhong(cthd.getMaDatPhong());
+                        for (ChitietPhieuDatPhong ctp : chiTietList) {
+                            PhieuDatPhong phieu = phieuDatPhongDao.getPhieuDatPhongByMa(ctp.getMaDatPhong());
+                            long soNgay = phieu != null && phieu.getNgayDen() != null && phieu.getNgayDi() != null
+                                    ? Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(phieu.getNgayDen(), phieu.getNgayDi()))
+                                    : 1;
+                            totalTienPhong += ctp.getTienPhong() * soNgay;
+                        }
+                    }
+                }
+                return new javafx.beans.property.SimpleObjectProperty<>(totalTienPhong);
+            } catch (SQLException e) {
+                return new javafx.beans.property.SimpleObjectProperty<>(0.0);
+            }
+        });
+        tienPhongCol.setCellFactory(col -> new TableCell<HoaDon, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
         });
         tienPhongCol.setMinWidth(120);
 
         TableColumn<HoaDon, Double> tienDichVuCol = new TableColumn<>("Tiền Dịch Vụ");
         tienDichVuCol.setCellValueFactory(cellData -> {
             String maHoaDon = cellData.getValue().getMaHoaDon();
-            double total = chitietHoaDonList.stream()
-                    .filter(ct -> maHoaDon.equals(ct.getMaHoaDon()))
-                    .mapToDouble(ChitietHoaDon::getTienDichVu)
-                    .sum();
-            return new javafx.beans.property.SimpleObjectProperty<>(total);
+            try {
+                List<ChitietHoaDon> cthdList = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(maHoaDon);
+                double totalTienDichVu = 0;
+                for (ChitietHoaDon cthd : cthdList) {
+                    if (cthd.getMaPhieuDichVu() != null) {
+                        List<ChitietPhieuDichVu> chiTietDVList = chitietPhieuDichVuDao.timKiemChitietPhieuDichVu(cthd.getMaPhieuDichVu());
+                        for (ChitietPhieuDichVu ctdv : chiTietDVList) {
+                            totalTienDichVu += ctdv.getDonGia() * ctdv.getSoLuong();
+                        }
+                    }
+                }
+                return new javafx.beans.property.SimpleObjectProperty<>(totalTienDichVu);
+            } catch (SQLException e) {
+                return new javafx.beans.property.SimpleObjectProperty<>(0.0);
+            }
+        });
+        tienDichVuCol.setCellFactory(col -> new TableCell<HoaDon, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : String.format("%,.0f VNĐ", item));
+            }
         });
         tienDichVuCol.setMinWidth(120);
 
@@ -311,41 +404,64 @@ public class QLDoanhThu {
 
             for (HoaDon hoaDon : hoaDonList) {
                 if (hoaDon.getTrangThai() && !hoaDon.getNgayLap().isBefore(startTime) && !hoaDon.getNgayLap().isAfter(endTime)) {
-                    double tienPhong = chitietHoaDonList.stream()
-                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
-                            .mapToDouble(ChitietHoaDon::getTienPhong)
-                            .sum();
-                    double tienDichVu = chitietHoaDonList.stream()
-                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
-                            .mapToDouble(ChitietHoaDon::getTienDichVu)
-                            .sum();
-                    double subTotal = tienPhong + tienDichVu;
-                    double vatAmount = chitietHoaDonList.stream()
-                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
-                            .mapToDouble(ct -> (ct.getTienPhong() + ct.getTienDichVu()) * ct.getThueVat() / 100)
-                            .sum();
-                    double discountAmount = chitietHoaDonList.stream()
-                            .filter(ct -> hoaDon.getMaHoaDon().equals(ct.getMaHoaDon()))
-                            .mapToDouble(ct -> (ct.getTienPhong() + ct.getTienDichVu()) * ct.getKhuyenMai() / 100)
-                            .sum();
+                    double tienPhong = 0;
+                    double tienDichVu = 0;
+                    double vatAmount = 0;
+                    double discountAmount = 0;
 
-                    if ("room".equals(reportType) && tienPhong > 0) {
-                        reportData.add(hoaDon);
-                        totalAmount += tienPhong + (tienPhong * vatAmount / subTotal) - (tienPhong * discountAmount / subTotal);
-                    } else if ("service".equals(reportType) && tienDichVu > 0) {
-                        reportData.add(hoaDon);
-                        totalAmount += tienDichVu + (tienDichVu * vatAmount / subTotal) - (tienDichVu * discountAmount / subTotal);
-                    } else if ("total".equals(reportType)) {
-                        reportData.add(hoaDon);
-                        totalAmount += subTotal + vatAmount - discountAmount;
+                    try {
+                        List<ChitietHoaDon> cthdList = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(hoaDon.getMaHoaDon());
+                        for (ChitietHoaDon cthd : cthdList) {
+                            // Calculate room cost
+                            if (cthd.getMaDatPhong() != null) {
+                                List<ChitietPhieuDatPhong> chiTietList = chitietPhieuDatPhongDao.timKiemChitietPhieuDatPhong(cthd.getMaDatPhong());
+                                for (ChitietPhieuDatPhong ctp : chiTietList) {
+                                    PhieuDatPhong phieu = phieuDatPhongDao.getPhieuDatPhongByMa(ctp.getMaDatPhong());
+                                    long soNgay = phieu != null && phieu.getNgayDen() != null && phieu.getNgayDi() != null
+                                            ? Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(phieu.getNgayDen(), phieu.getNgayDi()))
+                                            : 1;
+                                    tienPhong += ctp.getTienPhong() * soNgay;
+                                }
+                            }
+
+                            // Calculate service cost
+                            if (cthd.getMaPhieuDichVu() != null) {
+                                List<ChitietPhieuDichVu> chiTietDVList = chitietPhieuDichVuDao.timKiemChitietPhieuDichVu(cthd.getMaPhieuDichVu());
+                                for (ChitietPhieuDichVu ctdv : chiTietDVList) {
+                                    tienDichVu += ctdv.getDonGia() * ctdv.getSoLuong();
+                                }
+                            }
+
+                            // Calculate VAT and discount
+                            double subTotal = tienPhong + tienDichVu;
+                            vatAmount += subTotal * (cthd.getThueVat() / 100);
+                            discountAmount += subTotal * (cthd.getKhuyenMai() / 100);
+                        }
+
+                        if ("room".equals(reportType) && tienPhong > 0) {
+                            reportData.add(hoaDon);
+                            totalAmount += tienPhong + vatAmount - discountAmount;
+                        } else if ("service".equals(reportType) && tienDichVu > 0) {
+                            reportData.add(hoaDon);
+                            totalAmount += tienDichVu + vatAmount - discountAmount;
+                        } else if ("total".equals(reportType)) {
+                            reportData.add(hoaDon);
+                            totalAmount += (tienPhong + tienDichVu + vatAmount - discountAmount);
+                        }
+                    } catch (SQLException sqlEx) {
+                        System.err.println("Error generating report for invoice " + hoaDon.getMaHoaDon() + ": " + sqlEx.getMessage());
                     }
                 }
             }
 
             if (reportData.isEmpty()) {
                 showAlert("Thông báo", "Không có dữ liệu trong khoảng thời gian này!");
+                table.setItems(FXCollections.observableArrayList());
+            } else {
+                table.setItems(reportData);
+                // Adjust table height to fit all rows
+                table.setPrefHeight(30 + reportData.size() * 30); // Header + row height
             }
-            table.setItems(reportData);
             totalLabel.setText(String.format("Tổng số tiền: %,.0f VNĐ", totalAmount));
         });
 
@@ -378,7 +494,6 @@ public class QLDoanhThu {
         form.setPadding(new Insets(20));
         form.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; -fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
         form.setMaxWidth(700);
-        form.setMaxHeight(500);
 
         Label title = new Label(titleText);
         title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
