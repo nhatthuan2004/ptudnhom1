@@ -557,13 +557,13 @@ public class DatphongUI {
                 khachHang = new KhachHang(
                         maKhachHang,
                         hoTen,
-                        sdt,
-                        email.isEmpty() ? null : email,
-                        diaChi.isEmpty() ? null : diaChi,
                         cccd.isEmpty() ? null : cccd,
-                        ngaySinh,
+                        sdt,
+                        diaChi.isEmpty() ? null : diaChi,
                         quocTich.isEmpty() ? null : quocTich,
-                        gioiTinh != null ? gioiTinh : null
+                        ngaySinh,
+                        gioiTinh != null ? gioiTinh : null,
+                        email.isEmpty() ? null : email
                 );
                 dataManager.addKhachHang(khachHang);
             }
@@ -575,35 +575,21 @@ public class DatphongUI {
                 tongTien += tienPhong;
             }
 
-            // Check for existing unpaid invoice for the customer
-            String maHoaDon = null;
-            for (HoaDon hoaDon : dataManager.getHoaDonList()) {
-                if (hoaDon.getMaKhachHang().equals(maKhachHang) && !hoaDon.getTrangThai()) {
-                    maHoaDon = hoaDon.getMaHoaDon();
-                    // Update total amount of existing invoice
-                    hoaDon.setTongTien(hoaDon.getTongTien() + tongTien);
-                    dataManager.updateHoaDon(hoaDon);
-                    break;
-                }
-            }
-
-            // If no existing unpaid invoice, create a new one
-            if (maHoaDon == null) {
-                maHoaDon = hoaDonDao.getNextMaHoaDon();
-                String maNhanVien = dataManager.getCurrentNhanVien() != null
-                        ? dataManager.getCurrentNhanVien().getMaNhanVien()
-                        : "NV001";
-                HoaDon hoaDon = new HoaDon(
-                        maHoaDon,
-                        LocalDateTime.now(),
-                        "Chưa xác định",
-                        tongTien,
-                        false,
-                        maKhachHang,
-                        maNhanVien
-                );
-                dataManager.addHoaDon(hoaDon);
-            }
+            // Create invoice before booking
+            String maHoaDon = hoaDonDao.getNextMaHoaDon();
+            String maNhanVien = dataManager.getCurrentNhanVien() != null
+                    ? dataManager.getCurrentNhanVien().getMaNhanVien()
+                    : "NV001";
+            HoaDon hoaDon = new HoaDon(
+                    maHoaDon,
+                    LocalDateTime.now(),
+                    "Tiền mặt",
+                    tongTien,
+                    false,
+                    maKhachHang,
+                    maNhanVien
+            );
+            dataManager.addHoaDon(hoaDon);
 
             // Create booking with invoice ID
             String maDatPhong = generateMaDatPhong();
@@ -617,9 +603,10 @@ public class DatphongUI {
                     maKhachHang,
                     maHoaDon
             );
+
             dataManager.addPhieuDatPhong(phieuDatPhong);
 
-            // Create booking details
+            // Create booking details (không cập nhật trạng thái phòng)
             for (Phong phong : phongDaChonList) {
                 double tienPhong = phong.getGiaPhong() * Math.max(1, soNgayO);
                 ChitietPhieuDatPhong chiTiet = new ChitietPhieuDatPhong(
@@ -633,6 +620,7 @@ public class DatphongUI {
                         phong.getSoNguoiToiDa(),
                         false
                 );
+
                 dataManager.addChitietPhieuDatPhong(chiTiet);
             }
 

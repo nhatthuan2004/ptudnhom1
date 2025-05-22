@@ -2,6 +2,7 @@ package UI;
 
 import dao.KhachHang_Dao;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -12,6 +13,8 @@ import model.KhachHang;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class QLKH {
     private final ObservableList<KhachHang> danhSachKhachHang;
@@ -22,7 +25,14 @@ public class QLKH {
 
     public QLKH() {
         this.khachHangDao = new KhachHang_Dao();
-        this.danhSachKhachHang = DataManager.getInstance().getKhachHangList();
+        this.danhSachKhachHang = FXCollections.observableArrayList();
+        try {
+            // Tải dữ liệu từ cơ sở dữ liệu khi khởi tạo
+            this.danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Lỗi", "Không thể tải danh sách khách hàng: " + e.getMessage());
+        }
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
     }
@@ -63,13 +73,12 @@ public class QLKH {
         Button addButton = new Button("+ Thêm khách hàng");
         addButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
         addButton.setOnAction(e -> {
-			try {
-				showKhachHangForm(null);
-			} catch (SQLException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-		});
+            try {
+                showKhachHangForm(null);
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+        });
 
         HBox searchBox = new HBox(10, new Label("Tìm kiếm:"), searchField, searchButton, addButton);
         searchBox.setAlignment(Pos.CENTER);
@@ -77,15 +86,36 @@ public class QLKH {
 
         searchButton.setOnAction(e -> {
             String keyword = searchField.getText().trim().toLowerCase();
-            if (keyword.isEmpty()) {
-                table.setItems(danhSachKhachHang);
-            } else {
-                ObservableList<KhachHang> filteredList = danhSachKhachHang.filtered(kh ->
-                        kh.getMaKhachHang().toLowerCase().contains(keyword) ||
-                        kh.getTenKhachHang().toLowerCase().contains(keyword) ||
-                        kh.getCccd().toLowerCase().contains(keyword) ||
-                        kh.getSoDienThoai().toLowerCase().contains(keyword));
-                table.setItems(filteredList);
+            try {
+                if (keyword.isEmpty()) {
+                    // Nếu không có từ khóa, hiển thị toàn bộ danh sách
+                    danhSachKhachHang.clear();
+                    danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
+                    table.setItems(danhSachKhachHang);
+                } else {
+                    List<KhachHang> result;
+                    // Kiểm tra nếu từ khóa khớp với định dạng số điện thoại
+                    if (keyword.matches("0\\d{9}")) {
+                        result = new ArrayList<>();
+                        KhachHang kh = khachHangDao.getKhachHangBySDT(keyword);
+                        if (kh != null) result.add(kh);
+                    }
+                    // Kiểm tra nếu từ khóa khớp với định dạng CCCD
+                    else if (keyword.matches("\\d{12}")) {
+                        result = new ArrayList<>();
+                        KhachHang kh = khachHangDao.getKhachHangByCCCD(keyword);
+                        if (kh != null) result.add(kh);
+                    }
+                    // Nếu không, dùng tìm kiếm chung
+                    else {
+                        result = khachHangDao.timKiemKhachHang(keyword);
+                    }
+                    danhSachKhachHang.clear();
+                    danhSachKhachHang.addAll(result);
+                    table.setItems(danhSachKhachHang);
+                }
+            } catch (SQLException ex) {
+                showAlert("Lỗi", "Tìm kiếm thất bại: " + ex.getMessage());
             }
         });
 
@@ -145,13 +175,12 @@ public class QLKH {
                 } else {
                     setGraphic(btnEdit);
                     btnEdit.setOnAction(e -> {
-						try {
-							showKhachHangForm(getTableRow().getItem());
-						} catch (SQLException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						}
-					});
+                        try {
+                            showKhachHangForm(getTableRow().getItem());
+                        } catch (SQLException e1) {
+                            e1.printStackTrace();
+                        }
+                    });
                 }
             }
         });
@@ -180,7 +209,10 @@ public class QLKH {
                                 KhachHang kh = getTableRow().getItem();
                                 try {
                                     khachHangDao.xoaKhachHang(kh.getMaKhachHang());
-                                    danhSachKhachHang.remove(kh);
+                                    // Làm mới danh sách sau khi xóa
+                                    danhSachKhachHang.clear();
+                                    danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
+                                    table.refresh();
                                     showAlert("Thành công", "Xóa khách hàng thành công!");
                                 } catch (Exception ex) {
                                     showAlert("Lỗi", "Không thể xóa khách hàng: " + ex.getMessage());
@@ -201,7 +233,7 @@ public class QLKH {
         centerLayout.setPadding(new Insets(20));
         centerLayout.setAlignment(Pos.TOP_CENTER);
         centerLayout.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
-                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+                "-fx-border-color: #d3d3d3; -IX-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
 
         BorderPane layout = new BorderPane();
         layout.setTop(header);
@@ -340,15 +372,14 @@ public class QLKH {
                         return;
                     }
                     khachHangDao.themKhachHang(newKhachHang);
-                    danhSachKhachHang.add(newKhachHang);
-                    showAlert("Thành công", "Thêm khách hàng thành công!");
                 } else {
                     khachHangDao.suaKhachHang(newKhachHang);
-                    int index = danhSachKhachHang.indexOf(khachHang);
-                    danhSachKhachHang.set(index, newKhachHang);
-                    table.refresh();
-                    showAlert("Thành công", "Cập nhật khách hàng thành công!");
                 }
+                // Làm mới danh sách từ cơ sở dữ liệu sau khi thêm hoặc sửa
+                danhSachKhachHang.clear();
+                danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
+                table.refresh();
+                showAlert("Thành công", isEditMode ? "Cập nhật khách hàng thành công!" : "Thêm khách hàng thành công!");
                 contentPane.getChildren().setAll(mainPane);
             } catch (Exception ex) {
                 showAlert("Lỗi", (isEditMode ? "Cập nhật" : "Thêm") + " khách hàng thất bại: " + ex.getMessage());
