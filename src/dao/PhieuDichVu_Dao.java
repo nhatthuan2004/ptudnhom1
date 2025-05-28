@@ -17,24 +17,31 @@ public class PhieuDichVu_Dao {
 
     // Thêm phiếu dịch vụ
     public boolean themPhieuDichVu(PhieuDichVu phieuDichVu) throws SQLException {
-        String sql = "INSERT INTO PhieuDichVu (maPhieuDichVu, maHoaDon, ngayTao) VALUES (?, ?, ?)";
+        if (phieuDichVu == null) {
+            throw new IllegalArgumentException("PhieuDichVu is null!");
+        }
+        System.out.println("themPhieuDichVu: " + phieuDichVu);
+        String sql = "INSERT INTO PhieuDichVu (maPhieuDichVu, maDatPhong, maHoaDon, ngayTao) VALUES (?, ?, ?, ?)";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            // Kiểm tra giá trị đầu vào
-            if (phieuDichVu.getMaPhieuDichVu().isEmpty()) {
+            String maPhieuDichVu = phieuDichVu.getMaPhieuDichVu();
+            if (maPhieuDichVu == null || maPhieuDichVu.isEmpty()) {
                 throw new SQLException("Mã phiếu dịch vụ không được để trống!");
             }
-
-            ps.setString(1, phieuDichVu.getMaPhieuDichVu());
-            ps.setString(2, phieuDichVu.getMaHoaDon());
-            ps.setDate(3, phieuDichVu.getNgayTao() != null ? Date.valueOf(phieuDichVu.getNgayTao()) : null);
+            String maDatPhong = phieuDichVu.getMaDatPhong();
+            if (maDatPhong == null || maDatPhong.isEmpty()) {
+                throw new SQLException("Mã đặt phòng không được để trống!");
+            }
+            ps.setString(1, maPhieuDichVu);
+            ps.setString(2, maDatPhong);
+            ps.setString(3, phieuDichVu.getMaHoaDon());
+            ps.setDate(4, phieuDichVu.getNgayTao() != null ? Date.valueOf(phieuDichVu.getNgayTao()) : null);
 
             int rowsAffected = ps.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException e) {
-            // Xử lý lỗi nếu vi phạm ràng buộc khóa ngoại
             if (e.getSQLState().equals("23000")) {
-                throw new SQLException("Lỗi: Mã hóa đơn không hợp lệ (không tồn tại trong bảng HoaDon)!", e);
+                throw new SQLException("Lỗi: Mã đặt phòng hoặc mã hóa đơn không hợp lệ!", e);
             }
             throw e;
         }
@@ -57,22 +64,23 @@ public class PhieuDichVu_Dao {
 
     // Sửa phiếu dịch vụ
     public boolean suaPhieuDichVu(PhieuDichVu phieuDichVu) throws SQLException {
-        String sql = "UPDATE PhieuDichVu SET maHoaDon = ?, ngayTao = ? WHERE maPhieuDichVu = ?";
+        String sql = "UPDATE PhieuDichVu SET maDatPhong = ?, maHoaDon = ?, ngayTao = ? WHERE maPhieuDichVu = ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             if (phieuDichVu.getMaPhieuDichVu().isEmpty()) {
                 throw new SQLException("Mã phiếu dịch vụ không được để trống!");
             }
 
-            ps.setString(1, phieuDichVu.getMaHoaDon());
-            ps.setDate(2, phieuDichVu.getNgayTao() != null ? Date.valueOf(phieuDichVu.getNgayTao()) : null);
-            ps.setString(3, phieuDichVu.getMaPhieuDichVu());
+            ps.setString(1, phieuDichVu.getMaDatPhong());
+            ps.setString(2, phieuDichVu.getMaHoaDon());
+            ps.setDate(3, phieuDichVu.getNgayTao() != null ? Date.valueOf(phieuDichVu.getNgayTao()) : null);
+            ps.setString(4, phieuDichVu.getMaPhieuDichVu());
 
             int rowsAffected = ps.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException e) {
             if (e.getSQLState().equals("23000")) {
-                throw new SQLException("Lỗi: Mã hóa đơn không hợp lệ (không tồn tại trong bảng HoaDon)!", e);
+                throw new SQLException("Lỗi: Mã đặt phòng hoặc mã hóa đơn không hợp lệ!", e);
             }
             throw e;
         }
@@ -92,6 +100,7 @@ public class PhieuDichVu_Dao {
                 while (rs.next()) {
                     PhieuDichVu pdv = new PhieuDichVu(
                             rs.getString("maPhieuDichVu"),
+                            rs.getString("maDatPhong"),
                             rs.getString("maHoaDon"),
                             rs.getDate("ngayTao") != null ? rs.getDate("ngayTao").toLocalDate() : null
                     );
@@ -112,6 +121,7 @@ public class PhieuDichVu_Dao {
             while (rs.next()) {
                 PhieuDichVu pdv = new PhieuDichVu(
                         rs.getString("maPhieuDichVu"),
+                        rs.getString("maDatPhong"),
                         rs.getString("maHoaDon"),
                         rs.getDate("ngayTao") != null ? rs.getDate("ngayTao").toLocalDate() : null
                 );

@@ -167,30 +167,29 @@ public class PhieuDatPhong_Dao {
         return result;
     }
     // Lấy danh sách phiếu đặt phòng theo trạng thái
-    public List<PhieuDatPhong> getPhieuDatPhongByTrangThai(String trangThai) throws SQLException {
-        List<PhieuDatPhong> list = new ArrayList<>();
-        String sql = "SELECT * FROM PhieuDatPhong WHERE trangThai = ?";
-        try (Connection conn = connectDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, trangThai);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    PhieuDatPhong pdp = new PhieuDatPhong(
-                            rs.getString("maDatPhong"),
-                            rs.getDate("ngayDen") != null ? rs.getDate("ngayDen").toLocalDate() : null,
-                            rs.getDate("ngayDi") != null ? rs.getDate("ngayDi").toLocalDate() : null,
-                            rs.getDate("ngayDat") != null ? rs.getDate("ngayDat").toLocalDate() : null,
-                            rs.getInt("soLuongNguoi"),
-                            rs.getString("trangThai"),
-                            rs.getString("maKhachHang"),
-                            rs.getString("maHoaDon")
-                    );
-                    list.add(pdp);
-                }
+    public PhieuDatPhong getPhieuDatPhongByMa(String maDatPhong) throws SQLException {
+    String sql = "SELECT maDatPhong, ngayDen, ngayDi, ngayDat, soLuongNguoi, trangThai, maKhachHang, maHoaDon " +
+                 "FROM PhieuDatPhong WHERE maDatPhong = ?";
+    try (Connection conn = ConnectDB.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, maDatPhong);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return new PhieuDatPhong(
+                    rs.getString("maDatPhong"),
+                    rs.getDate("ngayDen") != null ? rs.getDate("ngayDen").toLocalDate() : null,
+                    rs.getDate("ngayDi") != null ? rs.getDate("ngayDi").toLocalDate() : null,
+                    rs.getDate("ngayDat") != null ? rs.getDate("ngayDat").toLocalDate() : null,
+                    rs.getInt("soLuongNguoi"),
+                    rs.getString("trangThai"),
+                    rs.getString("maKhachHang"),
+                    rs.getString("maHoaDon")
+                );
             }
         }
-        return list;
     }
+    return null; // Trả về null nếu không tìm thấy
+}
 
     // Sinh mã phiếu đặt phòng tự động
     public String getNextMaPhieuDatPhong() throws SQLException {

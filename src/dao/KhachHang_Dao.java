@@ -15,7 +15,7 @@ public class KhachHang_Dao {
     }
 
     public KhachHang getKhachHangBySDT(String sdt) throws SQLException {
-        String query = "SELECT maKhachHang, tenKhachHang, cccd, soDienThoai, diaChi, quoctich, ngaySinh, gioitinh, email " +
+        String query = "SELECT maKhachHang, tenKhachHang, soDienThoai, email, diaChi, cccd, ngaySinh, quoctich, gioitinh " +
                       "FROM KhachHang WHERE soDienThoai = ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -25,13 +25,13 @@ public class KhachHang_Dao {
                     return new KhachHang(
                         rs.getString("maKhachHang"),
                         rs.getString("tenKhachHang"),
-                        rs.getString("cccd"),
                         rs.getString("soDienThoai"),
+                        rs.getString("email"),
                         rs.getString("diaChi"),
-                        rs.getString("quoctich"),
+                        rs.getString("cccd"),
                         rs.getDate("ngaySinh") != null ? rs.getDate("ngaySinh").toLocalDate() : null,
-                        rs.getString("gioitinh"),
-                        rs.getString("email")
+                        rs.getString("quoctich"),
+                        rs.getString("gioitinh")
                     );
                 }
             }
@@ -40,7 +40,7 @@ public class KhachHang_Dao {
     }
 
     public KhachHang getKhachHangByCCCD(String cccd) throws SQLException {
-        String query = "SELECT maKhachHang, tenKhachHang, cccd, soDienThoai, diaChi, quoctich, ngaySinh, gioitinh, email " +
+        String query = "SELECT maKhachHang, tenKhachHang, soDienThoai, email, diaChi, cccd, ngaySinh, quoctich, gioitinh " +
                       "FROM KhachHang WHERE cccd = ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -48,15 +48,15 @@ public class KhachHang_Dao {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return new KhachHang(
-                        rs.getString("maKhachHang"),
+                        rs.getString ("maKhachHang"),
                         rs.getString("tenKhachHang"),
-                        rs.getString("cccd"),
                         rs.getString("soDienThoai"),
+                        rs.getString("email"),
                         rs.getString("diaChi"),
-                        rs.getString("quoctich"),
+                        rs.getString("cccd"),
                         rs.getDate("ngaySinh") != null ? rs.getDate("ngaySinh").toLocalDate() : null,
-                        rs.getString("gioitinh"),
-                        rs.getString("email")
+                        rs.getString("quoctich"),
+                        rs.getString("gioitinh")
                     );
                 }
             }
@@ -65,6 +65,17 @@ public class KhachHang_Dao {
     }
 
     public boolean themKhachHang(KhachHang khachHang) throws SQLException {
+        // Kiểm tra các trường bắt buộc
+        if (khachHang.getCccd() == null || khachHang.getCccd().trim().isEmpty()) {
+            throw new SQLException("CCCD không được để trống!");
+        }
+        if (khachHang.getSoDienThoai() == null || khachHang.getSoDienThoai().trim().isEmpty()) {
+            throw new SQLException("Số Điện Thoại không được để trống!");
+        }
+        if (khachHang.getEmail() == null || khachHang.getEmail().trim().isEmpty()) {
+            throw new SQLException("Email không được để trống!");
+        }
+
         String query = "INSERT INTO KhachHang (maKhachHang, tenKhachHang, cccd, soDienThoai, email, diaChi, quoctich, gioitinh, ngaySinh) " +
                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = connectDB.getConnection();
@@ -83,6 +94,17 @@ public class KhachHang_Dao {
     }
 
     public boolean suaKhachHang(KhachHang kh) throws SQLException {
+        // Kiểm tra các trường bắt buộc khi sửa
+        if (kh.getCccd() == null || kh.getCccd().trim().isEmpty()) {
+            throw new SQLException("CCCD không được để trống!");
+        }
+        if (kh.getSoDienThoai() == null || kh.getSoDienThoai().trim().isEmpty()) {
+            throw new SQLException("Số Điện Thoại không được để trống!");
+        }
+        if (kh.getEmail() == null || kh.getEmail().trim().isEmpty()) {
+            throw new SQLException("Email không được để trống!");
+        }
+
         String sql = "UPDATE KhachHang SET tenKhachHang = ?, soDienThoai = ?, email = ?, diaChi = ?, cccd = ?, ngaySinh = ?, quoctich = ?, gioitinh = ? " +
                      "WHERE maKhachHang = ?";
         try (Connection conn = connectDB.getConnection();
@@ -111,7 +133,7 @@ public class KhachHang_Dao {
 
     public List<KhachHang> timKiemKhachHang(String tuKhoa) throws SQLException {
         List<KhachHang> list = new ArrayList<>();
-        String sql = "SELECT maKhachHang, tenKhachHang, cccd, soDienThoai, diaChi, quoctich, ngaySinh, gioitinh, email " +
+        String sql = "SELECT maKhachHang, tenKhachHang, soDienThoai, email, diaChi, cccd, ngaySinh, quoctich, gioitinh " +
                      "FROM KhachHang WHERE maKhachHang LIKE ? OR tenKhachHang LIKE ? OR soDienThoai LIKE ? OR cccd LIKE ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -124,13 +146,13 @@ public class KhachHang_Dao {
                     KhachHang kh = new KhachHang(
                         rs.getString("maKhachHang"),
                         rs.getString("tenKhachHang"),
-                        rs.getString("cccd"),
                         rs.getString("soDienThoai"),
+                        rs.getString("email"),
                         rs.getString("diaChi"),
-                        rs.getString("quoctich"),
+                        rs.getString("cccd"),
                         rs.getDate("ngaySinh") != null ? rs.getDate("ngaySinh").toLocalDate() : null,
-                        rs.getString("gioitinh"),
-                        rs.getString("email")
+                        rs.getString("quoctich"),
+                        rs.getString("gioitinh")
                     );
                     list.add(kh);
                 }
@@ -141,7 +163,7 @@ public class KhachHang_Dao {
 
     public List<KhachHang> getAllKhachHang() throws SQLException {
         List<KhachHang> list = new ArrayList<>();
-        String sql = "SELECT maKhachHang, tenKhachHang, cccd, soDienThoai, diaChi, quoctich, ngaySinh, gioitinh, email " +
+        String sql = "SELECT maKhachHang, tenKhachHang, soDienThoai, email, diaChi, cccd, ngaySinh, quoctich, gioitinh " +
                      "FROM KhachHang";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -150,13 +172,13 @@ public class KhachHang_Dao {
                 KhachHang kh = new KhachHang(
                     rs.getString("maKhachHang"),
                     rs.getString("tenKhachHang"),
-                    rs.getString("cccd"),
                     rs.getString("soDienThoai"),
+                    rs.getString("email"),
                     rs.getString("diaChi"),
-                    rs.getString("quoctich"),
+                    rs.getString("cccd"),
                     rs.getDate("ngaySinh") != null ? rs.getDate("ngaySinh").toLocalDate() : null,
-                    rs.getString("gioitinh"),
-                    rs.getString("email")
+                    rs.getString("quoctich"),
+                    rs.getString("gioitinh")
                 );
                 list.add(kh);
             }
@@ -165,7 +187,7 @@ public class KhachHang_Dao {
     }
 
     public KhachHang getKhachHangById(String maKhachHang) throws SQLException {
-        String query = "SELECT maKhachHang, tenKhachHang, cccd, soDienThoai, diaChi, quoctich, ngaySinh, gioitinh, email " +
+        String query = "SELECT maKhachHang, tenKhachHang, soDienThoai, email, diaChi, cccd, ngaySinh, quoctich, gioitinh " +
                       "FROM KhachHang WHERE maKhachHang = ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -175,13 +197,13 @@ public class KhachHang_Dao {
                     return new KhachHang(
                         rs.getString("maKhachHang"),
                         rs.getString("tenKhachHang"),
-                        rs.getString("cccd"),
                         rs.getString("soDienThoai"),
+                        rs.getString("email"),
                         rs.getString("diaChi"),
-                        rs.getString("quoctich"),
+                        rs.getString("cccd"),
                         rs.getDate("ngaySinh") != null ? rs.getDate("ngaySinh").toLocalDate() : null,
-                        rs.getString("gioitinh"),
-                        rs.getString("email")
+                        rs.getString("quoctich"),
+                        rs.getString("gioitinh")
                     );
                 }
             }

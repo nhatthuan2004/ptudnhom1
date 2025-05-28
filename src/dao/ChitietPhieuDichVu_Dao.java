@@ -1,12 +1,14 @@
 package dao;
 
 import model.ChitietPhieuDichVu;
+import ConnectDB.ConnectDB;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import ConnectDB.ConnectDB;
 
 public class ChitietPhieuDichVu_Dao {
     private final ConnectDB connectDB;
@@ -15,40 +17,52 @@ public class ChitietPhieuDichVu_Dao {
         this.connectDB = ConnectDB.getInstance();
     }
 
-    // Thêm chi tiết phiếu dịch vụ
+    // Add a service ticket detail
     public boolean themChitietPhieuDichVu(ChitietPhieuDichVu ctpdv) throws SQLException {
-        String sql = "INSERT INTO ChitietPhieuDichVu (maPhieuDichVu, maDichVu, soLuong, donGia) VALUES (?, ?, ?, ?)";
-        try (Connection conn = connectDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            // Kiểm tra giá trị đầu vào
-            if (ctpdv.getMaPhieuDichVu().isEmpty() || ctpdv.getMaDichVu().isEmpty()) {
-                throw new SQLException("Mã phiếu dịch vụ hoặc mã dịch vụ không được để trống!");
-            }
-
-            ps.setString(1, ctpdv.getMaPhieuDichVu());
-            ps.setString(2, ctpdv.getMaDichVu());
-            ps.setInt(3, ctpdv.getSoLuong());
-            ps.setDouble(4, ctpdv.getDonGia());
-
-            int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0;
-        } catch (SQLException e) {
-            // Xử lý lỗi cụ thể nếu vi phạm ràng buộc khóa ngoại
-            if (e.getSQLState().equals("23000")) { // Lỗi vi phạm ràng buộc khóa ngoại
-                throw new SQLException("Lỗi: Mã phiếu dịch vụ hoặc mã dịch vụ không hợp lệ (không tồn tại trong bảng PhieuDichVu hoặc DichVu)!", e);
-            }
-            throw e; // Ném lại lỗi nếu không phải lỗi khóa ngoại
+    String sql = "INSERT INTO ChitietPhieuDichVu (maPhieuDichVu, maDichVu, soLuong, donGia, maPhong) VALUES (?, ?, ?, ?, ?)";
+    try (Connection conn = connectDB.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        // Kiểm tra giá trị đầu vào
+        if (ctpdv.getMaPhieuDichVu().isEmpty() || ctpdv.getMaDichVu().isEmpty()) {
+            throw new SQLException("Service ticket ID or service ID cannot be empty!");
         }
-    }
 
-    // Xóa chi tiết phiếu dịch vụ
+        // Kiểm tra xem maPhong có tồn tại trong bảng Phong không (nếu không rỗng)
+        String maPhong = ctpdv.getMaPhong();
+        if (maPhong != null && !maPhong.isEmpty()) {
+            String checkPhongSql = "SELECT COUNT(*) FROM Phong WHERE maPhong = ?";
+            try (PreparedStatement checkPs = conn.prepareStatement(checkPhongSql)) {
+                checkPs.setString(1, maPhong);
+                ResultSet rs = checkPs.executeQuery();
+                if (rs.next() && rs.getInt(1) == 0) {
+                    throw new SQLException("Room ID '" + maPhong + "' does not exist in the Phong table!");
+                }
+            }
+        }
+
+        ps.setString(1, ctpdv.getMaPhieuDichVu());
+        ps.setString(2, ctpdv.getMaDichVu());
+        ps.setInt(3, ctpdv.getSoLuong());
+        ps.setDouble(4, ctpdv.getDonGia());
+        ps.setString(5, maPhong != null && !maPhong.isEmpty() ? maPhong : null);
+
+        int rowsAffected = ps.executeUpdate();
+        return rowsAffected > 0;
+    } catch (SQLException e) {
+        if (e.getSQLState().equals("23000")) { // Lỗi vi phạm ràng buộc khóa ngoại
+            throw new SQLException("Error: Invalid service ticket ID, service ID, or room ID!", e);
+        }
+        throw e;
+    }
+}
+
+    // Delete a service ticket detail
     public boolean xoaChitietPhieuDichVu(String maPhieuDichVu, String maDichVu) throws SQLException {
         String sql = "DELETE FROM ChitietPhieuDichVu WHERE maPhieuDichVu = ? AND maDichVu = ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            // Kiểm tra giá trị đầu vào
             if (maPhieuDichVu == null || maPhieuDichVu.isEmpty() || maDichVu == null || maDichVu.isEmpty()) {
-                throw new SQLException("Mã phiếu dịch vụ hoặc mã dịch vụ không được để trống!");
+                throw new SQLException("Service ticket ID or service ID cannot be empty!");
             }
 
             ps.setString(1, maPhieuDichVu);
@@ -59,33 +73,32 @@ public class ChitietPhieuDichVu_Dao {
         }
     }
 
-    // Sửa chi tiết phiếu dịch vụ
+    // Update a service ticket detail
     public boolean suaChitietPhieuDichVu(ChitietPhieuDichVu ctpdv) throws SQLException {
-        String sql = "UPDATE ChitietPhieuDichVu SET soLuong = ?, donGia = ? WHERE maPhieuDichVu = ? AND maDichVu = ?";
+        String sql = "UPDATE ChitietPhieuDichVu SET soLuong = ?, donGia = ?, maPhong = ? WHERE maPhieuDichVu = ? AND maDichVu = ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            // Kiểm tra giá trị đầu vào
             if (ctpdv.getMaPhieuDichVu().isEmpty() || ctpdv.getMaDichVu().isEmpty()) {
-                throw new SQLException("Mã phiếu dịch vụ hoặc mã dịch vụ không được để trống!");
+                throw new SQLException("Service ticket ID or service ID cannot be empty!");
             }
 
             ps.setInt(1, ctpdv.getSoLuong());
             ps.setDouble(2, ctpdv.getDonGia());
-            ps.setString(3, ctpdv.getMaPhieuDichVu());
-            ps.setString(4, ctpdv.getMaDichVu());
+            ps.setString(3, ctpdv.getMaPhong().isEmpty() ? null : ctpdv.getMaPhong());
+            ps.setString(4, ctpdv.getMaPhieuDichVu());
+            ps.setString(5, ctpdv.getMaDichVu());
 
             int rowsAffected = ps.executeUpdate();
             return rowsAffected > 0;
         }
     }
 
-    // Tìm kiếm chi tiết phiếu dịch vụ
+    // Search for service ticket details
     public List<ChitietPhieuDichVu> timKiemChitietPhieuDichVu(String tuKhoa) throws SQLException {
         List<ChitietPhieuDichVu> list = new ArrayList<>();
         String sql = "SELECT * FROM ChitietPhieuDichVu WHERE maPhieuDichVu LIKE ? OR maDichVu LIKE ?";
         try (Connection conn = connectDB.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            // Kiểm tra từ khóa
             String searchKeyword = tuKhoa != null ? tuKhoa.trim() : "";
             ps.setString(1, "%" + searchKeyword + "%");
             ps.setString(2, "%" + searchKeyword + "%");
@@ -96,7 +109,8 @@ public class ChitietPhieuDichVu_Dao {
                             rs.getString("maPhieuDichVu"),
                             rs.getString("maDichVu"),
                             rs.getInt("soLuong"),
-                            rs.getDouble("donGia")
+                            rs.getDouble("donGia"),
+                            rs.getString("maPhong")
                     );
                     list.add(ctpdv);
                 }
@@ -105,7 +119,7 @@ public class ChitietPhieuDichVu_Dao {
         return list;
     }
 
-    // Lấy toàn bộ danh sách chi tiết phiếu dịch vụ
+    // Retrieve all service ticket details
     public List<ChitietPhieuDichVu> getAllChitietPhieuDichVu() throws SQLException {
         List<ChitietPhieuDichVu> list = new ArrayList<>();
         String sql = "SELECT * FROM ChitietPhieuDichVu";
@@ -117,7 +131,8 @@ public class ChitietPhieuDichVu_Dao {
                         rs.getString("maPhieuDichVu"),
                         rs.getString("maDichVu"),
                         rs.getInt("soLuong"),
-                        rs.getDouble("donGia")
+                        rs.getDouble("donGia"),
+                        rs.getString("maPhong")
                 );
                 list.add(ctpdv);
             }
@@ -125,7 +140,7 @@ public class ChitietPhieuDichVu_Dao {
         return list;
     }
 
-    // Lấy danh sách chi tiết phiếu dịch vụ theo mã phiếu dịch vụ
+    // Retrieve service ticket details by service ticket ID
     public List<ChitietPhieuDichVu> getChitietPhieuDichVuByMaPhieu(String maPhieuDichVu) throws SQLException {
         List<ChitietPhieuDichVu> list = new ArrayList<>();
         String sql = "SELECT * FROM ChitietPhieuDichVu WHERE maPhieuDichVu = ?";
@@ -138,7 +153,8 @@ public class ChitietPhieuDichVu_Dao {
                             rs.getString("maPhieuDichVu"),
                             rs.getString("maDichVu"),
                             rs.getInt("soLuong"),
-                            rs.getDouble("donGia")
+                            rs.getDouble("donGia"),
+                            rs.getString("maPhong")
                     );
                     list.add(ctpdv);
                 }

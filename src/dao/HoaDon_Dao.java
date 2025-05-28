@@ -171,4 +171,14 @@ public class HoaDon_Dao {
         }
         return 0.0;
     }
+    public void deleteHoaDonByMaDatPhong(String maDatPhong) throws SQLException {
+        String sql = "DELETE FROM HoaDon WHERE maPhieuDatPhong = ? AND daThanhToan = ?";
+        try (Connection conn = connectDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, maDatPhong);
+            stmt.setBoolean(2, false); // Chỉ xóa hóa đơn chưa thanh toán
+            int rowsAffected = stmt.executeUpdate();
+            System.out.println("Đã xóa " + rowsAffected + " hóa đơn cho maDatPhong: " + maDatPhong);
+        }
+    }
 }

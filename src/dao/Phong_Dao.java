@@ -42,21 +42,58 @@ public class Phong_Dao {
     }
 
     // Sửa thông tin phòng
-    public boolean suaPhong(Phong p) throws SQLException {
-        String sql = "UPDATE Phong SET loaiPhong = ?, giaPhong = ?, trangThai = ?, dondep = ?, vitri = ?, soNguoiToiDa = ?, moTa = ? " +
-                     "WHERE maPhong = ?";
+    public void updatePhong(Phong phong) throws SQLException {
+        String sql = "UPDATE Phong SET loaiPhong = ?, giaPhong = ?, trangThai = ?, donDep = ?, viTri = ?, soNguoiToiDa = ?, moTa = ? WHERE maPhong = ?";
         try (Connection conn = connectDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, p.getLoaiPhong());
-            ps.setDouble(2, p.getGiaPhong());
-            ps.setString(3, p.getTrangThai());
-            ps.setString(4, p.getDonDep());
-            ps.setString(5, p.getViTri());
-            ps.setInt(6, p.getSoNguoiToiDa());
-            ps.setString(7, p.getMoTa());
-            ps.setString(8, p.getMaPhong());
-            return ps.executeUpdate() > 0;
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phong.getLoaiPhong());
+            stmt.setDouble(2, phong.getGiaPhong());
+            stmt.setString(3, phong.getTrangThai());
+            stmt.setString(4, phong.getDonDep());
+            stmt.setString(5, phong.getViTri());
+            stmt.setInt(6, phong.getSoNguoiToiDa());
+            stmt.setString(7, phong.getMoTa());
+            stmt.setString(8, phong.getMaPhong());
+
+            System.out.println("Thực thi SQL: " + sql);
+            System.out.println("Tham số: maPhong=" + phong.getMaPhong() + ", trangThai=" + phong.getTrangThai() + ", loaiPhong=" + phong.getLoaiPhong() +
+                              ", giaPhong=" + phong.getGiaPhong() + ", donDep=" + phong.getDonDep() + ", viTri=" + phong.getViTri() +
+                              ", soNguoiToiDa=" + phong.getSoNguoiToiDa() + ", moTa=" + phong.getMoTa());
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected == 0) {
+                throw new SQLException("Không tìm thấy phòng với mã: " + phong.getMaPhong());
+            }
+            System.out.println("Đã cập nhật " + rowsAffected + " dòng trong bảng Phong cho phòng: " + phong.getMaPhong());
+        } catch (SQLException ex) {
+            System.err.println("Lỗi SQL: " + ex.getMessage());
+            System.err.println("SQL State: " + ex.getSQLState());
+            System.err.println("Error Code: " + ex.getErrorCode());
+            throw ex;
         }
+    }
+
+    public List<Phong> getAllPhong() throws SQLException {
+        List<Phong> phongList = new ArrayList<>();
+        String sql = "SELECT * FROM Phong";
+        try (Connection conn = connectDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Phong phong = new Phong(
+                        rs.getString("maPhong"),
+                        rs.getString("loaiPhong"),
+                        rs.getDouble("giaPhong"),
+                        rs.getString("trangThai"),
+                        rs.getString("donDep"),
+                        rs.getString("viTri"),
+                        rs.getInt("soNguoiToiDa"),
+                        rs.getString("moTa")
+                );
+                phongList.add(phong);
+            }
+        }
+        return phongList;
     }
 
     // Tìm kiếm phòng
@@ -88,29 +125,7 @@ public class Phong_Dao {
         return list;
     }
 
-    // Lấy toàn bộ danh sách phòng
-    public List<Phong> getAllPhong() throws SQLException {
-        List<Phong> list = new ArrayList<>();
-        String sql = "SELECT maPhong, loaiPhong, giaPhong, trangThai, dondep, vitri, soNguoiToiDa, moTa FROM Phong";
-        try (Connection conn = connectDB.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                Phong p = new Phong(
-                    rs.getString("maPhong"),
-                    rs.getString("loaiPhong"),
-                    rs.getDouble("giaPhong"),
-                    rs.getString("trangThai"),
-                    rs.getString("dondep"),
-                    rs.getString("vitri"),
-                    rs.getInt("soNguoiToiDa"),
-                    rs.getString("moTa")
-                );
-                list.add(p);
-            }
-        }
-        return list;
-    }
+
 
     // Lấy phòng theo mã
     public Phong getPhongByMa(String maPhong) throws SQLException {
