@@ -10,29 +10,30 @@ import java.util.List;
 public class KhachHang {
     private final StringProperty maKhachHang = new SimpleStringProperty();
     private final StringProperty tenKhachHang = new SimpleStringProperty();
-    private final StringProperty cccd = new SimpleStringProperty();
     private final StringProperty soDienThoai = new SimpleStringProperty();
+    private final StringProperty email = new SimpleStringProperty();
     private final StringProperty diaChi = new SimpleStringProperty();
+    private final StringProperty cccd = new SimpleStringProperty();
     private final ObjectProperty<LocalDate> ngaySinh = new SimpleObjectProperty<>();
     private final StringProperty quocTich = new SimpleStringProperty();
     private final StringProperty gioiTinh = new SimpleStringProperty();
-    private final StringProperty email = new SimpleStringProperty();
     private List<HoaDon> hoaDonList;
 
-    public KhachHang(String maKhachHang, String tenKhachHang, String cccd, String soDienThoai, String diaChi,
-                     String quocTich, LocalDate ngaySinh, String gioiTinh, String email) {
+ 
+
+    public KhachHang(String maKhachHang, String tenKhachHang, String soDienThoai, String email,
+                     String diaChi, String cccd, LocalDate ngaySinh, String quocTich, String gioiTinh) {
         setMaKhachHang(maKhachHang);
         setTenKhachHang(tenKhachHang);
-        setCccd(cccd);
         setSoDienThoai(soDienThoai);
-        setDiaChi(diaChi);
-        setQuocTich(quocTich);
-        setNgaySinh(ngaySinh);
-        setGioiTinh(gioiTinh);
         setEmail(email);
+        setDiaChi(diaChi);
+        setCccd(cccd);
+        setNgaySinh(ngaySinh);
+        setQuocTich(quocTich);
+        setGioiTinh(gioiTinh);
     }
 
-    // Getter
     public String getMaKhachHang() { return maKhachHang.get(); }
     public StringProperty maKhachHangProperty() { return maKhachHang; }
     public void setMaKhachHang(String maKhachHang) {
@@ -48,22 +49,16 @@ public class KhachHang {
         this.tenKhachHang.set(tenKhachHang);
     }
 
-    public String getCccd() { return cccd.get(); }
-    public StringProperty cccdProperty() { return cccd; }
-    public void setCccd(String cccd) {
-        if (cccd != null && !cccd.matches("\\d{9,12}")) {
-            System.err.println("CCCD không hợp lệ: " + cccd + ", sẽ giữ nguyên giá trị.");
-        }
-        this.cccd.set(cccd); // Giữ nguyên giá trị thay vì đặt null
-    }
-
     public String getSoDienThoai() { return soDienThoai.get(); }
     public StringProperty soDienThoaiProperty() { return soDienThoai; }
     public void setSoDienThoai(String soDienThoai) {
-        if (soDienThoai != null && !soDienThoai.matches("\\d{10,11}")) {
-            System.err.println("Số điện thoại không hợp lệ: " + soDienThoai + ", sẽ giữ nguyên giá trị.");
-        }
-        this.soDienThoai.set(soDienThoai); // Giữ nguyên giá trị thay vì đặt null
+        this.soDienThoai.set(soDienThoai != null && soDienThoai.matches("\\d{10,11}") ? soDienThoai : null);
+    }
+
+    public String getEmail() { return email.get(); }
+    public StringProperty emailProperty() { return email; }
+    public void setEmail(String email) {
+        this.email.set(email != null && email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$") ? email : null);
     }
 
     public String getDiaChi() { return diaChi.get(); }
@@ -72,13 +67,16 @@ public class KhachHang {
         this.diaChi.set(diaChi != null ? diaChi : null);
     }
 
+    public String getCccd() { return cccd.get(); }
+    public StringProperty cccdProperty() { return cccd; }
+    public void setCccd(String cccd) {
+        this.cccd.set(cccd != null && cccd.matches("\\d{9,12}") ? cccd : null);
+    }
+
     public LocalDate getNgaySinh() { return ngaySinh.get(); }
     public ObjectProperty<LocalDate> ngaySinhProperty() { return ngaySinh; }
     public void setNgaySinh(LocalDate ngaySinh) {
-        if (ngaySinh != null && ngaySinh.isAfter(LocalDate.now())) {
-            System.err.println("Ngày sinh không hợp lệ: " + ngaySinh + ", sẽ giữ nguyên giá trị.");
-        }
-        this.ngaySinh.set(ngaySinh); // Giữ nguyên giá trị thay vì đặt null
+        this.ngaySinh.set(ngaySinh != null && !ngaySinh.isAfter(LocalDate.now()) ? ngaySinh : null);
     }
 
     public String getQuocTich() { return quocTich.get(); }
@@ -90,19 +88,7 @@ public class KhachHang {
     public String getGioiTinh() { return gioiTinh.get(); }
     public StringProperty gioiTinhProperty() { return gioiTinh; }
     public void setGioiTinh(String gioiTinh) {
-        if (gioiTinh != null && !gioiTinh.equals("Nam") && !gioiTinh.equals("Nữ")) {
-            System.err.println("Giới tính không hợp lệ: " + gioiTinh + ", sẽ giữ nguyên giá trị.");
-        }
-        this.gioiTinh.set(gioiTinh); // Giữ nguyên giá trị thay vì đặt null
-    }
-
-    public String getEmail() { return email.get(); }
-    public StringProperty emailProperty() { return email; }
-    public void setEmail(String email) {
-        if (email != null && !email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
-            System.err.println("Email không hợp lệ: " + email + ", sẽ giữ nguyên giá trị.");
-        }
-        this.email.set(email); // Giữ nguyên giá trị thay vì đặt null
+        this.gioiTinh.set(gioiTinh != null && (gioiTinh.equals("Nam") || gioiTinh.equals("Nữ")) ? gioiTinh : null);
     }
 
     public List<HoaDon> getHoaDonList() {
@@ -112,18 +98,22 @@ public class KhachHang {
         return hoaDonList;
     }
 
-    public void addHoaDon(HoaDon hoaDon, ObservableList<HoaDon> hoaDonList) {
-        // TODO: Cần triển khai logic thêm hóa đơn
-    }
 
-    public List<HoaDon> getHoaDonList1() {
-        if (hoaDonList == null) {
-            hoaDonList = new ArrayList<>();
-        }
-        return hoaDonList;
-    }
+	public void addHoaDon(HoaDon hoaDon, ObservableList<HoaDon> hoaDonList) {
+		// TODO Auto-generated method stub
+		
+	}
 
-    public void setHoaDonList(List<HoaDon> hoaDonList) {
+	public List<HoaDon> getHoaDonList1() {
+	    if (hoaDonList == null) {
+	        hoaDonList = new ArrayList<>();
+	    }
+	    return hoaDonList;
+	}
+
+	public void setHoaDonList(List<HoaDon> hoaDonList) {
         this.hoaDonList = (hoaDonList != null) ? new ArrayList<>(hoaDonList) : new ArrayList<>();
     }
+
+
 }
