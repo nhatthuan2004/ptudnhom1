@@ -58,39 +58,15 @@ public class QLDichVu {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         header.getChildren().addAll(spacer, userInfoBox);
 
-        // Search bar
-        TextField searchField = new TextField();
-        searchField.setPromptText("Tìm theo mã, tên dịch vụ...");
-        searchField.setPrefWidth(300);
-        searchField.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
-
-        Button searchButton = new Button("Tìm kiếm");
-        searchButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
-
-        // Add button
+        // Add button with new style
         Button addButton = new Button("+ Thêm dịch vụ");
-        addButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+        addButton.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 6;");
         addButton.setOnAction(e -> showDichVuForm(null));
 
-        HBox searchBox = new HBox(10, new Label("Tìm kiếm:"), searchField, searchButton, addButton);
-        searchBox.setAlignment(Pos.CENTER);
-        searchBox.setPadding(new Insets(10));
-
-        searchButton.setOnAction(e -> {
-            String keyword = searchField.getText().trim();
-            try {
-                if (keyword.isEmpty()) {
-                    loadDataFromDatabase();
-                } else {
-                    danhSachDichVu.clear();
-                    danhSachDichVu.addAll(dichVuDao.timKiemDichVu(keyword));
-                }
-            } catch (Exception ex) {
-                showAlert("Lỗi", "Không thể tìm kiếm: " + ex.getMessage());
-            }
-        });
-
-        searchField.setOnAction(e -> searchButton.fire());
+        // Place the add button in an HBox for alignment
+        HBox topHeader = new HBox(addButton);
+        topHeader.setAlignment(Pos.CENTER_LEFT);
+        topHeader.setPadding(new Insets(10, 0, 10, 20));
 
         // Service table
         table = new TableView<>(danhSachDichVu);
@@ -177,7 +153,7 @@ public class QLDichVu {
         table.getColumns().setAll(maDichVuCol, tenDichVuCol, moTaCol, giaCol, trangThaiCol, editCol, deleteCol);
 
         // Layout
-        VBox centerLayout = new VBox(15, searchBox, table);
+        VBox centerLayout = new VBox(15, topHeader, table);
         centerLayout.setPadding(new Insets(20));
         centerLayout.setAlignment(Pos.TOP_CENTER);
         centerLayout.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
@@ -314,7 +290,7 @@ public class QLDichVu {
         btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
         btnHuy.setOnAction(e -> contentPane.getChildren().setAll(mainPane));
 
-        HBox footer = new HBox(10, btnLuu, btnHuy);
+        HBox footer = new HBox(15, btnLuu, btnHuy);
         footer.setAlignment(Pos.CENTER);
 
         form.getChildren().addAll(grid, footer);

@@ -833,24 +833,32 @@ public class QLdatphongUI {
             if (!existingCt.isEmpty()) {
                 cthd = existingCt.get(0);
                 cthd.setTienDichVu(cthd.getTienDichVu() + totalDichVu);
-                cthd.setMaPhieuDichVu(maPhieuDichVu); // Sử dụng maPhieuDichVu đã thêm
+                cthd.setMaPhieuDichVu(maPhieuDichVu); // Đảm bảo cập nhật maPhieuDichVu
                 chitietHoaDonDao.suaChitietHoaDon(cthd);
-                System.out.println(">> Cập nhật chi tiết hóa đơn: " + maHoaDon + ", Tổng tiền dịch vụ: " + cthd.getTienDichVu());
+                System.out.println(">> Cập nhật chi tiết hóa đơn: " + maHoaDon + ", Tổng tiền dịch vụ: " + cthd.getTienDichVu() + ", maPhieuDichVu: " + maPhieuDichVu);
             } else {
+                // Tính tổng tiền phòng trước khi tạo mới
+                double totalTienPhong = 0;
+                long soNgay = Math.max(1, ChronoUnit.DAYS.between(phieu.getNgayDen(), phieu.getNgayDi()));
+                for (ChitietPhieuDatPhong chiTiet : chiTietList) {
+                    double tienPhong = chiTiet.getTienPhong();
+                    totalTienPhong += tienPhong * soNgay;
+                }
+
                 cthd = new ChitietHoaDon(
                         maHoaDon,
-                        null,
+                        null, // Không cần maPhong vì tổng hợp tất cả phòng
                         10.0,
-                        1,
+                        (int) soNgay,
                         0.0,
-                        0.0,
+                        totalTienPhong,
                         totalDichVu,
                         null,
                         phieu.getMaDatPhong(),
-                        maPhieuDichVu // Sử dụng maPhieuDichVu đã thêm
+                        maPhieuDichVu // Đảm bảo gán maPhieuDichVu
                 );
                 chitietHoaDonDao.themChitietHoaDon(cthd);
-                System.out.println(">> Tạo chi tiết hóa đơn: " + maHoaDon + ", Tổng tiền dịch vụ: " + totalDichVu);
+                System.out.println(">> Tạo chi tiết hóa đơn: " + maHoaDon + ", Tổng tiền dịch vụ: " + totalDichVu + ", maPhieuDichVu: " + maPhieuDichVu);
             }
 
             // Cập nhật tổng tiền hóa đơn
@@ -1218,15 +1226,20 @@ public class QLdatphongUI {
         List<PhieuDichVu> dichVuList = dataManager.getPhieuDichVuList().stream()
                 .filter(pdv -> phieu.getMaHoaDon().equals(pdv.getMaHoaDon()))
                 .collect(Collectors.toList());
-        for (PhieuDichVu pdv : dichVuList) {
-            List<ChitietPhieuDichVu> chiTietDVList = chitietPhieuDichVuDao.timKiemChitietPhieuDichVu(pdv.getMaPhieuDichVu());
-            totalTienDichVu += chiTietDVList.stream().mapToDouble(ct -> ct.getDonGia() * ct.getSoLuong()).sum();
+        String maPhieuDichVu = null;
+        if (!dichVuList.isEmpty()) {
+            maPhieuDichVu = dichVuList.get(0).getMaPhieuDichVu();
+            for (PhieuDichVu pdv : dichVuList) {
+                List<ChitietPhieuDichVu> chiTietDVList = chitietPhieuDichVuDao.timKiemChitietPhieuDichVu(pdv.getMaPhieuDichVu());
+                totalTienDichVu += chiTietDVList.stream().mapToDouble(ct -> ct.getDonGia() * ct.getSoLuong()).sum();
+            }
         }
 
         // Kiểm tra hoặc tạo bản ghi ChitietHoaDon
         List<ChitietHoaDon> existingCt = chitietHoaDonDao.getChiTietDichVuByMaHoaDon(maHoaDon);
         ChitietHoaDon cthd;
         if (!existingCt.isEmpty()) {
+            // Nếu đã tồn tại bản ghi, cập nhật
             cthd = existingCt.get(0);
             cthd.setTienPhong(totalTienPhong);
             cthd.setTienDichVu(totalTienDichVu);
@@ -1235,10 +1248,11 @@ public class QLdatphongUI {
             cthd.setKhuyenMai(chietKhau);
             cthd.setMaChuongTrinhKhuyenMai(maKhuyenMai);
             cthd.setMaDatPhong(phieu.getMaDatPhong());
-            cthd.setMaPhieuDichVu(dichVuList.isEmpty() ? null : dichVuList.get(0).getMaPhieuDichVu());
+            cthd.setMaPhieuDichVu(maPhieuDichVu); // Đảm bảo cập nhật maPhieuDichVu
             chitietHoaDonDao.suaChitietHoaDon(cthd);
-            System.out.println("Đã cập nhật chi tiết hóa đơn: " + maHoaDon);
+            System.out.println("Đã cập nhật chi tiết hóa đơn: " + maHoaDon + ", maPhieuDichVu: " + maPhieuDichVu);
         } else {
+            // Nếu chưa tồn tại, tạo mới
             cthd = new ChitietHoaDon(
                     maHoaDon,
                     null, // Không cần maPhong vì tổng hợp tất cả phòng
@@ -1249,14 +1263,18 @@ public class QLdatphongUI {
                     totalTienDichVu,
                     maKhuyenMai,
                     phieu.getMaDatPhong(),
-                    dichVuList.isEmpty() ? null : dichVuList.get(0).getMaPhieuDichVu()
+                    maPhieuDichVu // Đảm bảo gán maPhieuDichVu
             );
             chitietHoaDonDao.themChitietHoaDon(cthd);
-            System.out.println("Đã tạo chi tiết hóa đơn: " + maHoaDon);
+            System.out.println("Đã tạo chi tiết hóa đơn: " + maHoaDon + ", maPhieuDichVu: " + maPhieuDichVu);
         }
 
-        // Không cập nhật trạng thái phòng thành "Trống" tại đây
-        // Trạng thái phòng sẽ được xử lý sau khi thời gian đặt phòng kết thúc
+        // Cập nhật trạng thái các chi tiết phiếu đặt phòng thành đã thanh toán
+        for (ChitietPhieuDatPhong chiTiet : chiTietList) {
+            chiTiet.setDaThanhToan(true);
+            chitietPhieuDatPhongDao.suaChitietPhieuDatPhong(chiTiet);
+            dataManager.updateChitietPhieuDatPhong(chiTiet);
+        }
 
         updateBookingDisplayDirectly();
         showAlert("Thành công", "Thanh toán phiếu đặt phòng " + phieu.getMaDatPhong() + " thành công!");

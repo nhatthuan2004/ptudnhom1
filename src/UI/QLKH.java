@@ -1,8 +1,6 @@
 package UI;
 
 import dao.KhachHang_Dao;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -13,8 +11,6 @@ import model.KhachHang;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 public class QLKH {
     private final ObservableList<KhachHang> danhSachKhachHang;
@@ -25,14 +21,7 @@ public class QLKH {
 
     public QLKH() {
         this.khachHangDao = new KhachHang_Dao();
-        this.danhSachKhachHang = FXCollections.observableArrayList();
-        try {
-            // Tải dữ liệu từ cơ sở dữ liệu khi khởi tạo
-            this.danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            showAlert("Lỗi", "Không thể tải danh sách khách hàng: " + e.getMessage());
-        }
+        this.danhSachKhachHang = DataManager.getInstance().getKhachHangList();
         this.contentPane = new StackPane();
         this.mainPane = createMainPane();
     }
@@ -60,18 +49,9 @@ public class QLKH {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         header.getChildren().addAll(spacer, userInfoBox);
 
-        // Search bar
-        TextField searchField = new TextField();
-        searchField.setPromptText("Tìm theo mã, tên, CCCD, số ĐT...");
-        searchField.setPrefWidth(300);
-        searchField.setStyle("-fx-border-radius: 5; -fx-background-radius: 5; -fx-border-color: #d3d3d3;");
-
-        Button searchButton = new Button("Tìm kiếm");
-        searchButton.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
-
-        // Add button
+        // Add button with new style
         Button addButton = new Button("+ Thêm khách hàng");
-        addButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
+        addButton.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 6;");
         addButton.setOnAction(e -> {
             try {
                 showKhachHangForm(null);
@@ -80,46 +60,10 @@ public class QLKH {
             }
         });
 
-        HBox searchBox = new HBox(10, new Label("Tìm kiếm:"), searchField, searchButton, addButton);
-        searchBox.setAlignment(Pos.CENTER);
-        searchBox.setPadding(new Insets(10));
-
-        searchButton.setOnAction(e -> {
-            String keyword = searchField.getText().trim().toLowerCase();
-            try {
-                if (keyword.isEmpty()) {
-                    // Nếu không có từ khóa, hiển thị toàn bộ danh sách
-                    danhSachKhachHang.clear();
-                    danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
-                    table.setItems(danhSachKhachHang);
-                } else {
-                    List<KhachHang> result;
-                    // Kiểm tra nếu từ khóa khớp với định dạng số điện thoại
-                    if (keyword.matches("0\\d{9}")) {
-                        result = new ArrayList<>();
-                        KhachHang kh = khachHangDao.getKhachHangBySDT(keyword);
-                        if (kh != null) result.add(kh);
-                    }
-                    // Kiểm tra nếu từ khóa khớp với định dạng CCCD
-                    else if (keyword.matches("\\d{12}")) {
-                        result = new ArrayList<>();
-                        KhachHang kh = khachHangDao.getKhachHangByCCCD(keyword);
-                        if (kh != null) result.add(kh);
-                    }
-                    // Nếu không, dùng tìm kiếm chung
-                    else {
-                        result = khachHangDao.timKiemKhachHang(keyword);
-                    }
-                    danhSachKhachHang.clear();
-                    danhSachKhachHang.addAll(result);
-                    table.setItems(danhSachKhachHang);
-                }
-            } catch (SQLException ex) {
-                showAlert("Lỗi", "Tìm kiếm thất bại: " + ex.getMessage());
-            }
-        });
-
-        searchField.setOnAction(e -> searchButton.fire());
+        // Place the add button in an HBox for alignment
+        HBox topHeader = new HBox(addButton);
+        topHeader.setAlignment(Pos.CENTER_LEFT);
+        topHeader.setPadding(new Insets(10, 0, 10, 20));
 
         // Customer table
         table = new TableView<>(danhSachKhachHang);
@@ -209,10 +153,7 @@ public class QLKH {
                                 KhachHang kh = getTableRow().getItem();
                                 try {
                                     khachHangDao.xoaKhachHang(kh.getMaKhachHang());
-                                    // Làm mới danh sách sau khi xóa
-                                    danhSachKhachHang.clear();
-                                    danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
-                                    table.refresh();
+                                    danhSachKhachHang.remove(kh);
                                     showAlert("Thành công", "Xóa khách hàng thành công!");
                                 } catch (Exception ex) {
                                     showAlert("Lỗi", "Không thể xóa khách hàng: " + ex.getMessage());
@@ -229,11 +170,11 @@ public class QLKH {
                 gioiTinhCol, ngaySinhCol, emailCol, editCol, deleteCol);
 
         // Layout
-        VBox centerLayout = new VBox(15, searchBox, table);
+        VBox centerLayout = new VBox(15, topHeader, table);
         centerLayout.setPadding(new Insets(20));
         centerLayout.setAlignment(Pos.TOP_CENTER);
         centerLayout.setStyle("-fx-background-color: #ffffff; -fx-border-radius: 10; -fx-background-radius: 10; " +
-                "-fx-border-color: #d3d3d3; -IX-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
+                "-fx-border-color: #d3d3d3; -fx-border-width: 1; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 5);");
 
         BorderPane layout = new BorderPane();
         layout.setTop(header);
@@ -337,52 +278,75 @@ public class QLKH {
             String gioiTinh = cbGioiTinh.getValue();
             String email = tfEmail.getText().trim();
 
-            if (tenKhachHang.isEmpty() || cccd.isEmpty() || soDienThoai.isEmpty() ||
-                    diaChi.isEmpty() || quocTich.isEmpty() || ngaySinh == null || gioiTinh == null || email.isEmpty()) {
-                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin!");
+            // In giá trị các trường để debug
+            System.out.println("Mã KH: " + maKhachHang);
+            System.out.println("Tên KH: '" + tenKhachHang + "'");
+            System.out.println("CCCD: '" + cccd + "'");
+            System.out.println("SĐT: '" + soDienThoai + "'");
+            System.out.println("Địa chỉ: '" + diaChi + "'");
+            System.out.println("Quốc tịch: '" + quocTich + "'");
+            System.out.println("Ngày sinh: " + (ngaySinh != null ? ngaySinh.toString() : "null"));
+            System.out.println("Giới tính: '" + (gioiTinh != null ? gioiTinh : "null") + "'");
+            System.out.println("Email: '" + email + "'");
+
+            // Kiểm tra từng trường và liệt kê trường trống
+            StringBuilder errorMsg = new StringBuilder();
+            if (tenKhachHang.isEmpty()) errorMsg.append("Tên khách hàng, ");
+            if (cccd.isEmpty()) errorMsg.append("CCCD, ");
+            if (soDienThoai.isEmpty()) errorMsg.append("Số điện thoại, ");
+            if (diaChi.isEmpty()) errorMsg.append("Địa chỉ, ");
+            if (quocTich.isEmpty()) errorMsg.append("Quốc tịch, ");
+            if (ngaySinh == null) errorMsg.append("Ngày sinh, ");
+            if (gioiTinh == null || gioiTinh.isEmpty()) errorMsg.append("Giới tính, ");
+            if (email.isEmpty()) errorMsg.append("Email, ");
+
+            if (errorMsg.length() > 0) {
+                errorMsg.setLength(errorMsg.length() - 2); // Xóa dấu phẩy và khoảng trắng cuối
+                showAlert("Lỗi", "Vui lòng điền đầy đủ thông tin! Các trường sau bị trống: " + errorMsg.toString());
                 return;
             }
 
+            // Kiểm tra định dạng CCCD
             if (!cccd.matches("\\d{12}")) {
                 showAlert("Lỗi", "CCCD phải là 12 chữ số!");
                 return;
             }
 
+            // Kiểm tra định dạng số điện thoại
             if (!soDienThoai.matches("0\\d{9}")) {
                 showAlert("Lỗi", "Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số!");
                 return;
             }
 
+            // Kiểm tra định dạng email
             if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
                 showAlert("Lỗi", "Email không hợp lệ!");
                 return;
             }
 
+            // Kiểm tra ngày sinh
             if (ngaySinh.isAfter(LocalDate.now())) {
                 showAlert("Lỗi", "Ngày sinh phải trước ngày hiện tại!");
                 return;
             }
 
-            KhachHang newKhachHang = new KhachHang(maKhachHang, tenKhachHang, cccd, soDienThoai, diaChi, quocTich, ngaySinh, gioiTinh, email);
-
             try {
+                KhachHang newKhachHang = new KhachHang(maKhachHang, tenKhachHang, soDienThoai, email, diaChi, cccd, ngaySinh, quocTich, gioiTinh);
                 if (!isEditMode) {
-                    if (danhSachKhachHang.stream().anyMatch(kh -> kh.getMaKhachHang().equals(maKhachHang))) {
-                        showAlert("Lỗi", "Mã khách hàng " + maKhachHang + " đã tồn tại!");
-                        return;
-                    }
                     khachHangDao.themKhachHang(newKhachHang);
+                    danhSachKhachHang.add(newKhachHang);
+                    showAlert("Thành công", "Thêm khách hàng thành công!");
                 } else {
                     khachHangDao.suaKhachHang(newKhachHang);
+                    int index = danhSachKhachHang.indexOf(khachHang);
+                    danhSachKhachHang.set(index, newKhachHang);
+                    table.refresh();
+                    showAlert("Thành công", "Cập nhật khách hàng thành công!");
                 }
-                // Làm mới danh sách từ cơ sở dữ liệu sau khi thêm hoặc sửa
-                danhSachKhachHang.clear();
-                danhSachKhachHang.addAll(khachHangDao.getAllKhachHang());
-                table.refresh();
-                showAlert("Thành công", isEditMode ? "Cập nhật khách hàng thành công!" : "Thêm khách hàng thành công!");
                 contentPane.getChildren().setAll(mainPane);
             } catch (Exception ex) {
                 showAlert("Lỗi", (isEditMode ? "Cập nhật" : "Thêm") + " khách hàng thất bại: " + ex.getMessage());
+                ex.printStackTrace();
             }
         });
 
@@ -390,7 +354,7 @@ public class QLKH {
         btnHuy.setStyle("-fx-background-color: #808080; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 6 12; -fx-background-radius: 5;");
         btnHuy.setOnAction(e -> contentPane.getChildren().setAll(mainPane));
 
-        HBox footer = new HBox(10, btnLuu, btnHuy);
+        HBox footer = new HBox(15, btnLuu, btnHuy);
         footer.setAlignment(Pos.CENTER);
 
         form.getChildren().addAll(grid, footer);

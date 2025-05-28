@@ -23,12 +23,12 @@ public class TimkiemDV {
         StackPane root = new StackPane();
         root.setStyle("-fx-background-color: white;");
 
-        // User info box
+        // Hộp thông tin người dùng
         HBox userInfoBox;
         try {
             userInfoBox = UserInfoBox.createUserInfoBox();
         } catch (Exception e) {
-            userInfoBox = new HBox(new Label("User Info Placeholder"));
+            userInfoBox = new HBox(new Label("Chưa có thông tin người dùng"));
             userInfoBox.setStyle("-fx-background-color: #333; -fx-padding: 10;");
         }
         userInfoBox.setPrefSize(200, 50);
@@ -36,12 +36,12 @@ public class TimkiemDV {
         StackPane.setAlignment(userInfoBox, Pos.TOP_RIGHT);
         StackPane.setMargin(userInfoBox, new Insets(10, 10, 0, 0));
 
-        // Title
+        // Tiêu đề
         Label title = new Label("Tìm kiếm dịch vụ theo tên");
         title.setFont(new Font(20));
         title.setStyle("-fx-font-weight: bold;");
 
-        // Search bar
+        // Thanh tìm kiếm
         TextField txtTimKiem = new TextField();
         txtTimKiem.setPromptText("Nhập tên dịch vụ...");
         txtTimKiem.setPrefWidth(300);
@@ -55,7 +55,7 @@ public class TimkiemDV {
         searchBox.setPadding(new Insets(10));
         searchBox.setAlignment(Pos.CENTER);
 
-        // Table
+        // Bảng
         TableView<DichVu> table = new TableView<>();
         table.setStyle("-fx-border-color: #d3d3d3; -fx-background-radius: 5; -fx-border-radius: 5;");
 
@@ -81,18 +81,14 @@ public class TimkiemDV {
         colGia.setCellValueFactory(new PropertyValueFactory<>("gia"));
         colGia.setPrefWidth(120);
 
-        TableColumn<DichVu, String> colLoai = new TableColumn<>("Loại");
-        colLoai.setCellValueFactory(new PropertyValueFactory<>("loai"));
-        colLoai.setPrefWidth(100);
-
         TableColumn<DichVu, String> colTrangThai = new TableColumn<>("Trạng Thái");
         colTrangThai.setCellValueFactory(new PropertyValueFactory<>("trangThai"));
         colTrangThai.setPrefWidth(100);
 
-        table.getColumns().addAll(colMaDichVu, colTenDichVu, colMoTa, colGia, colLoai, colTrangThai);
+        table.getColumns().addAll(colMaDichVu, colTenDichVu, colMoTa, colGia, colTrangThai);
         table.setItems(danhSachDichVu);
 
-        // Content layout
+        // Bố cục nội dung
         VBox content = new VBox(15, title, searchBox, scrollPane);
         content.setPadding(new Insets(20));
         content.setAlignment(Pos.TOP_CENTER);
@@ -104,7 +100,7 @@ public class TimkiemDV {
         layout.setCenter(content);
         layout.setPadding(new Insets(10));
 
-        // Search action
+        // Hành động tìm kiếm
         Runnable searchAction = () -> {
             String keyword = txtTimKiem.getText().trim().toLowerCase();
             ObservableList<DichVu> ketQua = FXCollections.observableArrayList();
