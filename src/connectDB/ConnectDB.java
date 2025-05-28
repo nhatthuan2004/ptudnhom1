@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class ConnectDB {
-	private static final String URL = "jdbc:sqlserver://NhatThuan:1433;databaseName=Khachsan;encrypt=true;trustServerCertificate=true;";
+    private static final String URL = "jdbc:sqlserver://Tram\\MSSQLSERVER2:1433;databaseName=Khachsan;encrypt=true;trustServerCertificate=true;loginTimeout=45;connectTimeout=30;socketTimeout=300";
     private static final String USER = "sa";
     private static final String PASSWORD = "123456";
 
@@ -27,7 +27,7 @@ public class ConnectDB {
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("✅ Kết nối thành công đến CSDL.");
+            // System.out.println("✅ Kết nối thành công đến CSDL."); // Đã xóa
             return connection;
         } catch (ClassNotFoundException e) {
             System.err.println("❌ Không tìm thấy driver SQL Server.");
@@ -45,7 +45,7 @@ public class ConnectDB {
         if (connection != null) {
             try {
                 connection.close();
-                System.out.println("🔌 Kết nối đã đóng.");
+                // System.out.println("🔌 Kết nối đã đóng."); // Đã xóa
             } catch (SQLException e) {
                 System.err.println("❌ Lỗi khi đóng kết nối: " + e.getMessage());
             }
